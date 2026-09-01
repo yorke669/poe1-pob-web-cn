@@ -78,15 +78,42 @@ key。boot.lua 已包装 `mainObject:WrapString`：在拆行**前**对整行做 
 
 ---
 
-## 3. 改动清单
+## 3. 改动记录（2026-09-02 本次会话）
 
-| 文件                               | 改动                                                                                                                                                         |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `packages/driver/boot.lua`         | ① `T()` 新增 COMPARE 分支（数值+label+百分比拆分匹配）；② 新增 `fuzzyLabelTable` 归一化索引（小写/去括号/去尾冒号）；③ 包装 `mainObject:WrapString` 整行翻译 |
-| `tools/translate/search-corpus.py` | 新增：语料检索工具（EXACT/SUBSTR 匹配类型，内置截图全部文本作为默认查询，支持自定义语料目录与 stdin 查询）                                                   |
-| `packages/driver/translate/*.lua`  | 无变化（重跑 sync 后仍为 70 模块 / 70470 条，与 PoeCharm 语料 1:1）                                                                                          |
+### 3.1 `packages/driver/boot.lua`（仅翻译层，未动上游）
 
-**未做**（明确排除）：不自补语料；PoeCharm 升级后重跑 `sync-from-poecharm.py` 即可让语料与机制自动对齐。
+| 位置                                  | 改动                                                                                                                                                                                                                               | 目的                                                                                                                                             |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `translateTableLower` 构建之后        | 新增 `normLabel()` / `normValue()` / `fuzzyLabelTable` 归一化索引：对语料中含括号或冒号的 key（如 `(maximum mana)`、`Mana Cost per second:`）建立「小写+去括号+去尾冒号」镜像表，值同步归一化（去首尾配对括号、去尾冒号）          | 复刻 PoeCharm `TranslateMatch` 的两侧归一化匹配，覆盖裸 key 缺失、只有冒号/括号 key 的 label                                                     |
+| `T()` TEMPLATE 分支后、最长前缀回退前 | 新增 COMPARE 分支：`^([%+%-~]?[%d%.,]+%%?%a?)%s+(.+)$` 拆出 `<数值[单位/%]>` + `<label>`，剥尾部 `%b()` 百分比；label 按「裸 key → 小写 key → `fuzzyLabelTable`」三级查表；命中后重组 `数值 译文 (百分比)` 并带 `COMPARE` 调试日志 | 让 `+667.5 Average Hit (+133.5%)`、`-110 Maximum Mana (±33.5%)`、`-1,177 Mana Cost per second (-35.5%)` 命中现有语料                             |
+| `T()` 定义之后                        | 新增 `_G.__pobWebTranslate = T` 暴露点                                                                                                                                                                                             | 供 `dofile("Launch.lua")` 之后才存在的 `mainObject` 包装引用                                                                                     |
+| `mainObject["ShowErrMsg"]` 包装之后   | 新增 `mainObject["WrapString"]` 包装：整行文本先 `T()` 再交给原 WrapString 拆行                                                                                                                                                    | `Tooltip:AddLine`（`Classes/Tooltip.lua:102`）绘制前把长行拆成碎片，整句 key 必须在拆行前命中；当前语料无描述 key 时无副作用，语料升级后自动生效 |
+
+### 3.2 `tools/translate/search-corpus.py`（新增）
+
+语料检索工具：对 PoeCharm `zh-rCN`（或指定目录）全部 CSV 逐条检索英文文本，报告 EXACT（key 整串相等）/
+SUBSTR（子串）匹配及所在文件行号。内置本次截图全部未翻译片段为默认查询，支持
+`python3 tools/translate/search-corpus.py [corpusDir] [queryFile|-]` 自定义。
+
+### 3.3 `packages/driver/translate/*.lua`（无变化）
+
+重跑同步确认产物纯净：70 模块 / 70470 条，与 PoeCharm 语料严格 1:1。
+
+### 3.4 `tools/translate/sync-from-poecharm.py`（已还原）
+
+调查中途曾加入「extra 自补语料目录合并」机制，后按「不加语料、语料始终以 PoeCharm
+为唯一来源」原则**整体还原**，最终与改动前完全一致。
+
+### 3.5 已撤销的尝试（教训记录）
+
+- 曾手写 `extra/BuildDisplayStats.csv`（自译 100+ 条 label）与
+  `extra/GemDescriptions.csv`（自译怒焰奔腾描述）——**已删除**。语料检索证明 stat 行 label 全部已在 PoeCharm
+  语料中（此前只查了 SkillsTab/BuildDisplayStats 两个文件而漏了 Unsorted.csv 等），宝石描述则 PoeCharm
+  本身也未翻，自译既无必要也会偏离语料源。
+
+### 3.6 未做（明确排除）
+
+不自补语料；PoeCharm 升级后重跑 `sync-from-poecharm.py` 即可让语料与机制自动对齐。
 
 ---
 
