@@ -9,15 +9,20 @@
 #   --kind <kind>  构建类型，可选值：debug, release, all（默认：all）
 # 
 # 示例：
-#   ./driver-build.sh                  # 同时构建 debug 和 release
-#   ./driver-build.sh --kind debug     # 只构建 debug 版本
-#   ./driver-build.sh --kind release   # 只构建 release 版本
+#   ./代码阅读/scripts/driver-build.sh                  # 同时构建 debug 和 release
+#   ./代码阅读/scripts/driver-build.sh --kind debug     # 只构建 debug 版本
+#   ./代码阅读/scripts/driver-build.sh --kind release   # 只构建 release 版本
 #
 # 输出位置：
 #   packages/driver/dist/debug/     driver.mjs + driver.wasm（-O0 -g3，开启 ASSERTIONS/SAFE_HEAP）
 #   packages/driver/dist/release/   driver.mjs + driver.wasm + driver.wasm.debug.wasm（-O3，LTO，mimalloc）
 
 set -e  # 遇到错误立即退出
+
+# 确保 Emscripten 使用 Python >= 3.9。
+# macOS 自带 /usr/bin/python3 为 3.8.2，运行 emcmake.py 会因 `dict[str, dict]` 标注报错；
+# 若构建时未激活 conda（python3 解析到系统旧版本），这里兜底到 miniconda3 的 3.13。
+export EMSDK_PYTHON="${EMSDK_PYTHON:-/Users/xingyuke/miniconda3/bin/python3}"
 
 # 颜色输出
 RED='\033[0;31m'

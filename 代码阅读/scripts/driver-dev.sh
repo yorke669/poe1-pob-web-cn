@@ -12,9 +12,9 @@
 #   --pob-cool-asset        使用线上 CDN 资源替代本地打包
 # 
 # 示例：
-#   ./driver-dev.sh --game poe1 --version v2.67.2 --build debug
-#   ./driver-dev.sh --game poe2 --version v0.23.1
-#   ./driver-dev.sh --game poe1 --pob-cool-asset
+#   ./代码阅读/scripts/driver-dev.sh --game poe1 --version v2.67.2 --build debug
+#   ./代码阅读/scripts/driver-dev.sh --game poe2 --version v0.23.1
+#   ./代码阅读/scripts/driver-dev.sh --game poe1 --pob-cool-asset
 #
 # 前置条件：
 #   1. 已打包资源（运行 pack.sh）或使用 --pob-cool-asset

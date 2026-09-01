@@ -29,21 +29,25 @@ export async function loadFont(url: string, family: string) {
 
 function font(size: number, fontNum: number) {
   const fontSize = size - 2;
+  // CJK fallback: the bundled Latin fonts (Fontin/Liberation/Vera) have no Chinese glyphs.
+  // Appending CJK families lets the browser fall back per-glyph, so translated Chinese text
+  // renders via the system / loaded CJK font while Latin text keeps its signature font.
+  const cjk = ', "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "WenQuanYi Micro Hei", sans-serif';
   switch (fontNum) {
     case 1:
-      return `${fontSize}px Liberation Sans`;
+      return `${fontSize}px Liberation Sans${cjk}`;
     case 2:
-      return `${fontSize}px Liberation Sans Bold`;
+      return `${fontSize}px Liberation Sans Bold${cjk}`;
     case 3:
-      return `${fontSize}px Fontin SmallCaps`;
+      return `${fontSize}px Fontin SmallCaps${cjk}`;
     case 4:
-      return `italic ${fontSize}px Fontin SmallCaps`;
+      return `italic ${fontSize}px Fontin SmallCaps${cjk}`;
     case 5:
-      return `${fontSize}px Fontin Regular`;
+      return `${fontSize}px Fontin Regular${cjk}`;
     case 6:
-      return `${fontSize}px Fontin Italic`;
+      return `${fontSize}px Fontin Italic${cjk}`;
     default:
-      return `${fontSize}px Bitstream Vera Mono`;
+      return `${fontSize}px Bitstream Vera Mono${cjk}`;
   }
 }
 
