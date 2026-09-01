@@ -1,0 +1,34 @@
+{
+  // 由 Deno 提供 TS 语言服务（项目是 Deno workspace，不是 Node 项目）
+  "deno.enable": true,
+  "deno.lint": true,
+  "deno.codeLens.test": true,
+  "deno.config": "./deno.json",
+
+  // 若 Deno 扩展找不到 mise 安装的 deno，显式指定路径（版本号见 mise.toml）
+  // "deno.path": "~/.local/share/mise/installs/deno/2.9.3/bin/deno",
+
+  // 保存即格式化，与 hk 的 deno-fmt 规则保持一致（lineWidth 120）
+  "editor.defaultFormatter": "denoland.vscode-deno",
+  "editor.formatOnSave": true,
+  "[typescript]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+  "[typescriptreact]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+  "[json]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+  "[markdown]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+
+  // 构建产物不参与搜索，避免干扰
+  "files.watcherExclude": {
+    "**/packages/driver/build/**": true,
+    "**/packages/driver/dist/**": true,
+    "**/packages/packer/build/**": true,
+    "**/packages/packer/r2/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/packages/driver/build": true,
+    "**/packages/driver/dist": true,
+    "**/packages/packer/build": true,
+    "**/packages/packer/r2": true,
+    "**/deno.lock": true
+  }
+}
