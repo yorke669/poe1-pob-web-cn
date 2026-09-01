@@ -47,6 +47,21 @@ echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
+> ⚠️ **实战踩坑：登录后 `mise: 找不到命令`**
+>
+> `curl https://mise.run | sh` 默认把 mise 装到 `/root/.local/bin/mise`，但这个目录**不在默认 PATH 里**。更关键的是：
+> - **登录 shell 加载的是 `~/.profile`**（不是 `~/.bashrc`，除非 `~/.profile` 里显式 source 了 `~/.bashrc`）。
+> - 只在 `~/.bashrc` 写 PATH，重新 SSH 登录时仍会报 `找不到命令 "mise"，但可以通过以下软件包安装它：snap install mise`。
+>
+> **正确做法**（实测有效），把 PATH 同时写进 `~/.profile`：
+> ```bash
+> echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.profile
+> echo 'eval "$(/root/.local/bin/mise activate bash)"' >> ~/.bashrc
+> source ~/.profile
+> mise --version   # 应输出版本号，如 2026.8.16 linux-x64
+> ```
+> 下次纯 SSH 登录（非交互子 shell）也能直接 `mise`。
+
 ### 1.4 克隆项目
 
 ```bash
@@ -74,6 +89,40 @@ mise run setup
 ```bash
 mise --version && deno --version   # deno 应为 2.9.3
 ```
+
+### 1.6 （实战）服务器下载慢：用本机代理加速
+
+如果 Ubuntu 服务器在国内网络，克隆 Git 子模块、拉 mise 工具链、装 deno 依赖都很慢，可用 **SSH 反向隧道**把本机（macOS/Windows）的代理"借"给服务器用。
+
+> ⚠️ **关键限制：隧道和要用代理的命令必须在同一个 SSH 会话里。**
+> 不能"一边 `ssh -R` 建隧道、另一边新开 SSH 跑命令"——那样新会话访问不到隧道端口，会报 `Connection refused`。
+> 即在**建隧道的那个 SSH 窗口里**继续敲后续命令。
+
+**步骤**：
+
+1. **在本机终端建反向隧道**（保持窗口打开）。假设本机代理是 Clash Verge 的 `127.0.0.1:7897`：
+   ```bash
+   # 本机执行
+   ssh -R 7897:127.0.0.1:7897 root@<server-ip>
+   ```
+   参数含义：把服务器的 `7897` 端口转发到本机 `127.0.0.1:7897`（你的代理）。
+
+2. **在同一个 SSH 会话里**设代理并验证：
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   export HTTP_PROXY="http://127.0.0.1:7897"
+   export HTTPS_PROXY="http://127.0.0.1:7897"
+   curl -I https://github.com        # 应返回 HTTP/2 200
+   ```
+
+3. **接着跑初始化**（同一个会话）：
+   ```bash
+   cd /opt/poe/poe1-pob-web
+   git submodule update --init --recursive   # 走代理，速度正常
+   mise run setup
+   ```
+
+> 💡 也可把上面的初始化步骤整成 `代码阅读/scripts/setup-ubuntu-with-proxy.sh`，建好隧道后在服务器直接 `bash setup-ubuntu-with-proxy.sh`。
 
 ---
 
@@ -335,9 +384,27 @@ driver 与 web 都启用了 `vite-plugin-inspect`，开发时可访问 `http://1
 
 本地开发默认读 `packages/packer/r2/`。先打包对应版本，或改用 `--pob-cool-asset` 走 CDN。
 
-### 6.2 报 `SharedArrayBuffer is not defined` / 能力检查失败
+### 6.2 报 `SharedArrayBuffer is not defined` / `PobEnvironmentCapabilityError`
 
 运行时依赖 cross-origin isolation。开发服务器已自动加 `COOP: same-origin` + `COEP: require-corp` 头（driver 在 `vite.config.ts`，web 在自定义中间件里，但 `/auth/poe-popup` 例外）。必须通过 `http://127.0.0.1` 或 HTTPS 访问，**不能用局域网 IP 直连**。
+
+> ⚠️ **实战踩坑（远程服务器）**：在 Ubuntu 服务器上跑 `mise run driver:dev`，然后浏览器用 `http://<server-ip>:5173/` 访问，会直接报：
+> ```
+> Driver startup failed PobEnvironmentCapabilityError:
+> Path of Building requires cross-origin isolation and SharedArrayBuffer support
+> ```
+> 原因是浏览器只有在 **安全上下文**（HTTPS 或 `localhost`/`127.0.0.1`）里才允许 `SharedArrayBuffer`，**单纯 IP 地址不算安全上下文**。
+>
+> **给 Vite 加 `--host` 暴露到 `0.0.0.0` 也救不了**——这只能让端口被外部访问，改不了"浏览器是否处于 isolated 上下文"。不要为了这个去改 `packages/driver/deno.json` 的 `dev` 任务（已验证无效，并已改回原样 `"dev": "vite"`）。
+>
+> ✅ **正确做法：本地端口转发**。在**本机**另开一个终端建 SSH 本地隧道，把服务器 5173 转到本机：
+> ```bash
+> # 本机执行
+> ssh -L 5173:127.0.0.1:5173 root@<server-ip>
+> ```
+> 然后浏览器访问 **`http://localhost:5173/`**。`localhost` 满足 cross-origin isolation，启动正常。
+>
+> 同理 `web:dev` 暴露多个动态端口时，可对每个端口各建一条 `-L` 转发。
 
 ### 6.3 想在 VS Code 里用 CMake 面板构建
 
@@ -391,6 +458,25 @@ sudo apt install -y build-essential \
     libx11-dev \
     libxext-dev \
     libxrender-dev
+```
+
+### 6.11 Git 子模块镜像坑（不要乱设 `insteadOf`）
+
+如果图快给 Git 配过国内镜像：
+```bash
+git config --global url."https://github.com.cnpmjs.org/".insteadOf "https://github.com/"
+```
+**实测在走代理的场景下会失败**：`git submodule update` 报
+```
+fatal: 无法访问 'https://github.com.cnpmjs.org/atty303/lua.git/'：
+gnutls_handshake() failed: The TLS connection was non-properly terminated.
+```
+因为镜像域名解析不到 / 代理下握手被中断。
+
+✅ **正确做法**：走 §1.6 的 SSH 隧道代理，直接用 GitHub 官方地址，并清除镜像配置：
+```bash
+git config --global --unset url."https://github.com.cnpmjs.org/".insteadOf
+git submodule update --init --recursive   # 走 HTTP(S)_PROXY，正常
 ```
 
 ---
