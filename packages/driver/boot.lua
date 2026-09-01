@@ -148,6 +148,19 @@ end
 -- text when no translation exists, so it never breaks the app.
 --
 local translateTable = {}
+-- 翻译模块加载调试开关：
+--   环境变量 POE_TRANSLATE_DEBUG=1 或设置全局 translateDebug=true 时，
+--   会逐文件打印加载详情；默认只打印一行汇总，避免刷屏。
+local translateDebug = true
+do
+    local debugEnv = (os.getenv and os.getenv("POE_TRANSLATE_DEBUG")) or ""
+    translateDebug = debugEnv == "1"
+        or debugEnv == "true"
+        or (type(_G.translateDebug) == "boolean" and _G.translateDebug)
+end
+local translateLoadedFiles = 0
+local translateFailedFiles = 0
+local translateTotalEntries = 0
 local translateManifestOk, translateManifest = pcall(require, "translate_manifest")
 if translateManifestOk and type(translateManifest) == "table" then
     for _, file in ipairs(translateManifest) do
@@ -155,19 +168,71 @@ if translateManifestOk and type(translateManifest) == "table" then
         if chunk then
             local ok, data = pcall(chunk)
             if ok and type(data) == "table" then
+                local count = 0
                 for k, v in pairs(data) do
                     translateTable[k] = v
+                    count = count + 1
+                end
+                translateLoadedFiles = translateLoadedFiles + 1
+                translateTotalEntries = translateTotalEntries + count
+                if translateDebug then
+                    print(string.format("[translate] loaded %s (%d entries)", file, count))
                 end
             else
+                translateFailedFiles = translateFailedFiles + 1
                 print("[translate] failed to load " .. file .. ": " .. tostring(data))
             end
         else
+            translateFailedFiles = translateFailedFiles + 1
             print("[translate] failed to open " .. file .. ": " .. tostring(loadErr))
         end
     end
 end
+print(string.format(
+    "[translate] loaded %d modules, %d failed, %d total entries%s",
+    translateLoadedFiles,
+    translateFailedFiles,
+    translateTotalEntries,
+    translateDebug and " (verbose)" or " (set POE_TRANSLATE_DEBUG=1 for per-file details)"
+))
 
 if next(translateTable) then
+    -- Case-insensitive mirror for matching strings that PoB uppercases
+    -- (item affix lines are rendered in ALL CAPS while CSV keys are Title Case).
+    local translateTableLower = {}
+    for k, v in pairs(translateTable) do
+        if type(k) == "string" then
+            translateTableLower[k:lower()] = v
+        end
+    end
+
+    -- Normalised-label mirror for stat-compare lines. CompareStatList renders
+    -- bare labels ("+667.5 Average Hit (+133.5%)", "-110 Maximum Mana"), but the
+    -- corpus stores most display-stat labels as "Label:" (BuildDisplayStats.csv)
+    -- or in bracketed form "(maximum mana)" (CalcDefence.csv). PoeCharm's
+    -- TranslateMatch normalises both sides the same way; do the same here:
+    -- lowercase, strip brackets and trailing colons on key AND value.
+    local function normLabel(s)
+        s = s:lower():gsub("[%(%)]", "")
+        s = s:gsub(":%s*$", "")
+        s = s:gsub("^%s+", ""):gsub("%s+$", "")
+        return (s)
+    end
+    local function normValue(s)
+        s = s:gsub("^%((.*)%)$", "%1")
+        s = s:gsub(":%s*$", "")
+        return (s)
+    end
+    local fuzzyLabelTable = {}
+    for k, v in pairs(translateTable) do
+        if type(k) == "string" and (k:find("[%(%)]") or k:find(":")) then
+            local nk = normLabel(k)
+            if #nk > 0 and #nk <= 50 and fuzzyLabelTable[nk] == nil then
+                fuzzyLabelTable[nk] = normValue(v)
+            end
+        end
+    end
+
     -- PoB embeds colour/format codes (e.g. ^x808080) inside DrawString text.
     -- We strip them for lookup, but we must preserve leading codes so the
     -- translated text keeps the intended colour. Without this, Chinese labels
@@ -176,7 +241,10 @@ if next(translateTable) then
         local escapes = {}
         local rest = text
         while true do
-            local esc, tail = rest:match("^(%^x%x%x%x%x%x)(.*)$")
+            -- PoB colour codes are exactly ^xRRGGBB (6 hex digits). The exact
+            -- count matters: a greedy match would also swallow label text that
+            -- starts with a hex digit (e.g. "ES Leech/On Hit Rate").
+            local esc, tail = rest:match("^(%^x%x%x%x%x%x%x)(.*)$")
             if not esc then
                 esc, tail = rest:match("^(%^%d)(.*)$")
             end
@@ -190,18 +258,137 @@ if next(translateTable) then
         return table.concat(escapes), rest
     end
 
+    -- Upstream StripEscapes() matches a 7-digit ^x form, so it leaves the 6-digit
+    -- ^xRRGGBB codes PoB actually uses in place and every coloured stat label
+    -- misses the table. Strip the escape codes ourselves instead.
+    local function stripEscapes(text)
+        return text:gsub("%^%d", ""):gsub("%^x%x%x%x%x%x%x", "")
+    end
+
+    -- Item affix lines and flavour text are rendered as resolved strings
+    -- (e.g. "+25% Chance to Block Spell Damage") rather than StatDescriber
+    -- templates. Convert them back to "{0}% Chance to Block Spell Damage" form
+    -- so we can look them up in the same statDescriptions translation table.
+    local function resolveToTemplate(text)
+        local values = {}
+        local n = 0
+        -- Ranges like (80-120) or (+80-120) become a single placeholder.
+        local templ = text:gsub("%b()", function(s)
+            n = n + 1
+            values[n] = s
+            return "@V" .. n .. "@"
+        end)
+        -- Remaining signed/unsigned numbers become placeholders.
+        templ = templ:gsub("([%+%-]?%d+%.?%d*)", function(num)
+            n = n + 1
+            values[n] = num
+            return "@V" .. n .. "@"
+        end)
+        -- Convert temporary markers to {0}, {1}, ...
+        templ = templ:gsub("@V(%d+)@", function(i)
+            return "{" .. (tonumber(i) - 1) .. "}"
+        end)
+        return templ, values
+    end
+
     local function T(text)
         if type(text) ~= "string" then
             return text
         end
         local prefix, key = splitLeadingEscapes(text)
-        key = StripEscapes(key)
+        key = stripEscapes(key)
         local translated = translateTable[key]
         if translated then
             return prefix .. translated
         end
+        -- Item tooltip lines render the label inline with the value (e.g.
+        -- "^x7F7F7FArmour: ^x8888FF960" -> key "Armour: 960"). Match the
+        -- label portion before the first ":" so a single entry like
+        -- ["Armour"] = "护甲" covers every current and future value.
+        local labelPart = key:match("^(.-):")
+        if labelPart then
+            local labelTranslated = translateTable[labelPart]
+            if labelTranslated then
+                return prefix .. labelTranslated .. key:sub(#labelPart + 1)
+            end
+        end
+        -- Skill gem tags and similar comma-separated lists are drawn as one
+        -- string (e.g. "Spell, AoE, Fire, Duration"). Translate each tag.
+        if key:find(", ") then
+            local parts, allTranslated = {}, true
+            for part in key:gmatch("([^,]+)") do
+                part = part:match("^%s*(.-)%s*$")
+                local partTr = translateTable[part] or translateTableLower[part:lower()]
+                if not partTr then
+                    allTranslated = false
+                    break
+                end
+                table.insert(parts, partTr)
+            end
+            if allTranslated then
+                if translateDebug then
+                    print(string.format("[translate] LIST %q -> %q", key, table.concat(parts, ", ")))
+                end
+                return prefix .. table.concat(parts, ", ")
+            end
+        end
+        -- Item mod / flavour lines are rendered in ALL CAPS but the CSV keys
+        -- are Title Case. Turn "+25% CHANCE TO BLOCK SPELL DAMAGE" into
+        -- "{0}% Chance to Block Spell Damage" and look it up case-insensitively.
+        if key:find("[%d%%%(]") then
+            local templ, values = resolveToTemplate(key)
+            translated = translateTable[templ] or translateTableLower[templ:lower()]
+            if translated then
+                local result = translated:gsub("{(%d)}", function(i)
+                    return values[tonumber(i) + 1] or ("{" .. i .. "}")
+                end)
+                if translateDebug then
+                    print(string.format("[translate] TEMPLATE %q -> %q -> %q", key, templ, result))
+                end
+                return prefix .. result
+            end
+        end
+        -- Stat compare lines (e.g. "+667.5 Average Hit (+133.5%)", "+3.9m AoE Radius")
+        -- are built by Build.lua CompareStatList as "<value> <label>[ <percent>]".
+        -- The label is a displayStats entry (SkillsTab/BuildDisplayStats CSVs), but
+        -- the dynamic value glued in front of it defeats exact matching. Split the
+        -- value (with optional unit letter like "m" or trailing "%"), translate the
+        -- label and re-attach the value and the "(+x%)" comparison part.
+        local numPart, rest = key:match("^([%+%-~]?[%d%.,]+%%?%a?)%s+(.+)$")
+        if numPart then
+            local pct = rest:match("%b()$")
+            local label = pct and rest:sub(1, #rest - #pct) or rest
+            label = label:match("^%s*(.-)%s*$")
+            local labelTr = translateTable[label]
+                or translateTableLower[label:lower()]
+                or fuzzyLabelTable[normLabel(label)]
+            if labelTr then
+                local result = numPart .. " " .. labelTr .. (pct and (" " .. pct) or "")
+                if translateDebug then
+                    print(string.format("[translate] COMPARE %q -> %q", key, result))
+                end
+                return prefix .. result
+            end
+        end
+        -- Compound labels without a colon (e.g. "Requires Level 60, 138 STR")
+        -- fall back to the longest matching prefix.
+        for i = #key - 1, 1, -1 do
+            translated = translateTable[key:sub(1, i)]
+            if translated then
+                return prefix .. translated .. key:sub(i + 1)
+            end
+        end
+        if translateDebug then
+            print(string.format("[translate] MISS %q", key))
+        end
         return text
     end
+
+    -- Expose T() for the WrapString wrapper installed after Launch.lua (below):
+    -- Tooltip:AddLine word-wraps long lines (e.g. gem descriptions) into fragments
+    -- via main:WrapString, so those lines must be translated as a whole BEFORE the
+    -- split, otherwise no fragment can match a full-text key.
+    _G.__pobWebTranslate = T
 
     local _DrawString = DrawString
     DrawString = function(x, y, align, height, font, text)
@@ -225,6 +412,75 @@ end
 dofile("Launch.lua")
 
 --
+-- pob-web translation layer: stat descriptions (item/skill mod text)
+--
+-- Stat descriptions ("Adds {0} to {1} Physical Damage to Attacks" etc.) are
+-- stored as templates with placeholders and formatted by Modules/StatDescriber.lua
+-- via a chain of gsub calls. By the time text reaches DrawString the placeholders
+-- are already numbers, so the DrawString hook above can never match them. We
+-- therefore translate the templates right here, after LoadModule loads the data
+-- module and before StatDescriber formats it.
+do
+    local function normalise(text)
+        -- "{0:+d}" / "{0:d}" -> "{0}" so it matches the simplified CSV entries
+        return text:gsub("{(%d):(%+?)d}", "{%1}")
+    end
+
+    local function restore(translated, original)
+        -- Put the "+d" style formatting back onto the translated template so the
+        -- value keeps its sign when StatDescriber formats it.
+        return (translated:gsub("{(%d)}", function(n)
+            local sign = original:match("{" .. n .. ":(%+?)d}")
+            if sign then
+                return "{" .. n .. ":" .. sign .. "d}"
+            end
+            return "{" .. n .. "}"
+        end))
+    end
+
+    local function translateText(text)
+        local translated = translateTable[normalise(text)]
+        if translated then
+            return restore(translated, text)
+        end
+        return text
+    end
+
+    local function translateScope(tbl, seen)
+        seen = seen or {}
+        if seen[tbl] then return end
+        seen[tbl] = true
+        for _, v in pairs(tbl) do
+            if type(v) == "table" then
+                if type(v.text) == "string" then
+                    local before = v.text
+                    v.text = translateText(v.text)
+                    if v.text ~= before and translateDebug then
+                        print(string.format("[translate] STAT %q -> %q", before, v.text))
+                    end
+                end
+                translateScope(v, seen)
+            end
+        end
+    end
+
+    if LoadModule then
+        local _LoadModule = LoadModule
+        LoadModule = function(fileName, ...)
+            local results = { _LoadModule(fileName, ...) }
+            local mod = results[1]
+            if type(fileName) == "string" and fileName:match("^Data/StatDescriptions/") and type(mod) == "table" then
+                local count = 0
+                for _ in pairs(mod) do count = count + 1 end
+                print(string.format("[translate] HOOK %s (%d top-level entries)", fileName, count))
+                translateScope(mod)
+            end
+            return unpack(results)
+        end
+    end
+end
+
+--
 -- pob-web related custom code
 --
 local mainObject = GetMainObject()
@@ -238,6 +494,21 @@ local showErrMsg = mainObject["ShowErrMsg"]
 mainObject["ShowErrMsg"] = function(self, msg, ...)
     OnError(string.format(msg, ...))
     showErrMsg(self, msg, ...)
+end
+
+-- Translate whole lines before main:WrapString splits them. Tooltip:AddLine
+-- word-wraps long text (gem/skill descriptions, flavour text) into per-line
+-- fragments drawn by individual DrawString calls; translating the whole line
+-- here (while the full sentence is still intact) lets whole-sentence keys hit.
+local wrapString = mainObject["WrapString"]
+if wrapString and _G.__pobWebTranslate then
+    local translateLine = _G.__pobWebTranslate
+    mainObject["WrapString"] = function(self, str, ...)
+        if type(str) == "string" then
+            str = translateLine(str)
+        end
+        return wrapString(self, str, ...)
+    end
 end
 
 -- Hide the check for updates button
