@@ -681,7 +681,124 @@ git config --global https.proxy http://127.0.0.1:7897
 
 ---
 
-## 13. 相关文档
+## 13. 远程服务器连接（ssh-skill）
+
+本机通过 **ssh-skill** 管理服务器连接。该 skill 已改造支持**明文密码登录**（密码只写进你本机的 `~/.ssh/config` 注释行，不进聊天记录），免去逐台部署公钥的麻烦。
+
+> ⚠️ 运行 skill 的 Python 需已安装 `paramiko`（任意含 paramiko 的 `python3` 即可，例如 conda 环境里的 `python3`）。下文统一用 `python3` 调用，脚本路径相对家目录 `~`。
+
+### 13.1 注册服务器（只需一次）
+
+```bash
+python3 ~/.codebuddy/skills/ssh-skill/scripts/ssh_skill.py \
+  config create --alias <server-ip> --host <server-ip> --user root --password '<服务器密码>'
+```
+
+- `--alias` 起别名（直接用 IP 最省事），后续 `exec <alias>` 靠它定位。
+- 改密码：`config update <alias> --password '<新密码>'`。
+- 查看已注册列表：`list-servers`。
+
+### 13.2 在服务器执行命令
+
+```bash
+python3 ~/.codebuddy/skills/ssh-skill/scripts/ssh_skill.py \
+  exec <server-ip> "<要执行的命令>"
+```
+
+> ⚠️ skill 回显是 JSON，真正的命令输出在 `data.stdout` 字段里；若远程命令返回非 0，外层也会报 `exit code 1`，需看 JSON 里的 `stdout`/`error.message` 定位。
+
+### 13.3 本次服务器初始化记录（172.50.2.121）
+
+- 项目目录：`/opt/poe/poe1-pob-web`
+- 服务器初始在 **main** 分支且本地没有 dev → 已执行：
+  ```bash
+  git fetch origin
+  git checkout -b dev --track origin/dev
+  git pull origin dev     # 已是最新
+  ```
+- 浏览器访问需用本机端口转发（见 §6.2），不能用 IP 直连 `SharedArrayBuffer`。
+
+---
+
+## 14. 本地开发 → 服务器更新 工作流
+
+### 14.1 三步流程
+
+```mermaid
+flowchart LR
+    A["① 本机修改代码"] --> B["② 传到服务器<br/>ssh-skill upload"]
+    B --> C["③ 在服务器编译<br/>ssh-skill exec"]
+```
+
+**第 1 步：在本机修改代码** —— 正常改 `packages/`、`tools/` 等源码，不需要 git 提交。
+
+**第 2 步：把修改的代码传到服务器** —— 用 `git status` 找出本次改动的文件，逐个 `ssh-skill upload` 到服务器项目目录（只传改动文件，不走整目录同步、不用 sshpass、不用部署公钥）：
+
+```bash
+# 在项目根目录执行；SERVER_ALIAS 即 §13 注册的别名
+SERVER_ALIAS=<server-ip>
+REMOTE=/opt/poe/poe1-pob-web
+git status --porcelain -uall | while read -r code path; do
+  case "$code" in
+    D*|R*) continue ;;   # 跳过删除 / 重命名（远端按需自行处理）
+    *) python3 ~/.codebuddy/skills/ssh-skill/scripts/ssh_skill.py \
+         upload "$SERVER_ALIAS" "$path" "$REMOTE/$path" --progress ;;
+  esac
+done
+```
+
+**第 3 步：在服务器编译 / 启动** —— 用 `ssh-skill exec` 在服务器上跑 mise 命令（详见 §14.2 判断哪些要重跑）：
+
+```bash
+python3 ~/.codebuddy/skills/ssh-skill/scripts/ssh_skill.py exec <server-ip> \
+  "cd /opt/poe/poe1-pob-web && mise run pack --game poe1 --tag v2.67.2 && mise run driver:build && mise run driver:dev --game poe1 --version v2.67.2"
+```
+
+> 💡 `upload` 基于 Paramiko SFTP，复用 `config create` 时存的密码，和 `exec` 同一套连接机制。大文件加 `--resume` 可断点续传。
+> 💡 `git status --porcelain -uall` 拿到本机改动清单（含未跟踪的单个文件），逐个 `upload` 到服务器对应路径。**只传改动文件**，构建产物（`r2/`、`dist/`）只有真改了才会传。
+> ⚠️ 删除了的文件不会自动从服务器删（脚本里 `D*` 跳过了），需要时在服务器手动 `rm`；想强制整目录一致再补一条 `upload <alias> ./packages /opt/poe/poe1-pob-web/packages --recursive`。
+
+### 14.2 三步是否需要每次重跑（核心判断）
+
+**结论：日常改代码，三步大多数情况都不用重跑。**
+
+| 步骤 | 干什么 | 是否需要每次重跑 | 触发重跑的条件 |
+|---|---|---|---|
+| ① `mise run pack` | 把上游游戏资源打成 `root.zip` + `root/` 图片 | ❌ **不用每次** | 改了 `packages/packer/**`、游戏版本/资源变了、或首次部署。有输入指纹缓存，输入未变直接复用 |
+| ② `mise run driver:build` | 把 C/Lua driver 编译成 Wasm | ❌ **不用每次** | 改了 `packages/driver/src/c/**`、`boot.lua`、`vendor/lua/**`。纯 TS/JS 改动靠 Vite HMR 直接生效 |
+| ③ `mise run driver:dev` | 起开发服务器 | ❌ **一般不用每次** | dev 服务器带 HMR，改代码大多自动热更新；只有 pack/build 产物变了、或进程挂了才需重启 |
+
+**场景速查**：
+
+- **改了前端 TS / `packages/web/**` / `packages/driver/src/js/**`**：服务器上 `driver:dev` 已跑着的话，HMR 自动生效 → ①②③ 都不用动。
+- **改了 driver 的 C 代码 / `boot.lua`**：重跑 ②（build）+ 重启 ③。
+- **改了资源 / packer / 换了游戏版本**：重跑 ① + 重启 ③。
+- **首次部署一台新服务器**：①②③ 依次跑一次（且 ① 需要代理）。
+
+> 💡 `mise run driver:dev` / `web:dev` 的 `depends` 里已声明 `driver:build`，会按需自动编译，所以日常基本不需要手动跑 ②。
+
+### 14.3 第①步需要代理（重点：pack 会重新下载上游资源）
+
+`pack` 会**重新从上游 CDN 下载**游戏资源（Lua、图片、DDS 纹理）到本地 `r2/`。服务器若在国内网络、无法直连 CDN，这步就必须走代理，否则下载慢或失败。两种策略：
+
+1. **服务器走代理**（推荐，资源随上传保持最新）：用 §1.6 的 SSH 反向隧道，或 §12.3 的 `HTTP_PROXY`/`HTTPS_PROXY`，再 `mise run pack`。
+2. **本机打包后上传**：本机有代理，先 `mise run pack` 生成 `packages/packer/r2/`，再 `ssh-skill upload` 传上服务器（如 `upload <server-ip> ./packages/packer/r2 /opt/poe/poe1-pob-web/packages/packer/r2 --recursive`）。
+   - ⚠️ `r2/` 产物通常**不被 git 跟踪**（gitignore），但 ssh-skill 的 `upload` 是整目录同步、没有排除清单，所以它会一并被传上去——这正好是想要的效果；若你只上传源码目录（如只传 `packages`/`tools`），则 `r2/` 不会自动带上，服务器仍需自己 pack。
+   - 想免去服务器代理，也可运行时加 `--pob-cool-asset` 直接走线上 CDN（`mise run driver:dev --game poe1 --version v2.67.2 --pob-cool-asset`），但**调试翻译/本地资源时必须用本地打包版**（见 `代码分析` 中的 zh-rCN 移植要点）。
+
+### 14.4 浏览器访问
+
+服务器起 `driver:dev` 后，浏览器**不能用 `http://<server-ip>:5173/` 直连**（IP 非安全上下文，`SharedArrayBuffer` 不可用）。在本机另开终端建本地隧道：
+
+```bash
+ssh -L 5173:127.0.0.1:5173 root@172.50.2.121
+```
+
+然后访问 **`http://localhost:5173/`**（详见 §6.2）。
+
+---
+
+## 15. 相关文档
 
 - [本地开发手册（macOS）](./本地开发手册.md) - macOS 系统的开发指南
 - [代码分析](./代码分析.md) - 项目架构和代码分析

@@ -184,6 +184,7 @@ return {
   ["{0} + {1} per Level"] = "{0} + 每级 {1}",
   ["Name"] = "名称",
   ["Reservation"] = "保留",
+  ["Cost"] = "消耗",
   ["Mana Regeneration:"] = "魔力再生:",
   ["Life Regen Percent"] = "生命再生百分比",
   ["Mana Regen Percent"] = "魔力再生百分比",

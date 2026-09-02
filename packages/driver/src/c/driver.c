@@ -616,3 +616,52 @@ const char* get_build_code() {
     lua_pop(L, 1);
     return s_build_code;
 }
+
+static char *s_build_stats = NULL;
+static char *s_item_compare_stats = NULL;
+
+EMSCRIPTEN_KEEPALIVE
+const char* get_build_stats() {
+    lua_State *L = GL;
+
+    free(s_build_stats);
+    s_build_stats = NULL;
+
+    lua_getglobal(L, "getBuildStats");
+    if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
+        fprintf(stderr, "Error: %s\n", lua_tostring(L, -1));
+        lua_pop(L, 1);
+        return NULL;
+    }
+
+    size_t len;
+    const char *stats = lua_tolstring(L, -1, &len);
+    s_build_stats = malloc(len + 1);
+    memcpy(s_build_stats, stats, len + 1);
+    lua_pop(L, 1);
+    return s_build_stats;
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* get_item_compare_stats(const char *slot_name, const char *item_raw) {
+    lua_State *L = GL;
+
+    free(s_item_compare_stats);
+    s_item_compare_stats = NULL;
+
+    lua_getglobal(L, "getItemCompareStats");
+    lua_pushstring(L, slot_name ? slot_name : "");
+    lua_pushstring(L, item_raw ? item_raw : "");
+    if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
+        fprintf(stderr, "Error: %s\n", lua_tostring(L, -1));
+        lua_pop(L, 1);
+        return NULL;
+    }
+
+    size_t len;
+    const char *stats = lua_tolstring(L, -1, &len);
+    s_item_compare_stats = malloc(len + 1);
+    memcpy(s_item_compare_stats, stats, len + 1);
+    lua_pop(L, 1);
+    return s_item_compare_stats;
+}

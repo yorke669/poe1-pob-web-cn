@@ -5,6 +5,7 @@ import type { DOMKeyboardState } from "../keyboard.ts";
 import "./overlay.css";
 import type { FrameData, RenderStats } from "./PerformanceOverlay.tsx";
 import { PerformanceOverlay } from "./PerformanceOverlay.tsx";
+import { FloatingStatsButton } from "./FloatingStatsButton.tsx";
 import { Toolbar } from "./Toolbar.tsx";
 import type { ToolbarCallbacks, ToolbarPosition } from "./types.ts";
 import { VirtualKeyboard } from "./VirtualKeyboard.tsx";
@@ -21,6 +22,8 @@ interface OverlayContainerProps {
   performanceVisible?: boolean;
   onLayerVisibilityChange?: (layer: number, sublayer: number, visible: boolean) => void;
   externalComponent?: React.ComponentType<{ position: ToolbarPosition; isLandscape: boolean }>;
+  onGetStats?: () => Promise<string>;
+  onGetItemCompareStats?: (slotName: string, itemRaw?: string) => Promise<string>;
 }
 
 export const OverlayContainer: React.FC<OverlayContainerProps> = ({
@@ -35,6 +38,8 @@ export const OverlayContainer: React.FC<OverlayContainerProps> = ({
   performanceVisible = false,
   onLayerVisibilityChange,
   externalComponent,
+  onGetStats,
+  onGetItemCompareStats,
 }) => {
   const [position, setPosition] = useState<ToolbarPosition>("bottom");
   const [isLandscape, setIsLandscape] = useState(false);
@@ -154,6 +159,9 @@ export const OverlayContainer: React.FC<OverlayContainerProps> = ({
         renderStats={renderStats}
         onLayerVisibilityChange={onLayerVisibilityChange}
       />
+      {onGetStats && onGetItemCompareStats && (
+        <FloatingStatsButton onGetStats={onGetStats} onGetItemCompareStats={onGetItemCompareStats} />
+      )}
     </div>
   );
 };
@@ -187,6 +195,8 @@ export class ReactOverlayManager {
         | "renderStats"
         | "performanceVisible"
         | "externalComponent"
+        | "onGetStats"
+        | "onGetItemCompareStats"
       >
     >,
   ) {

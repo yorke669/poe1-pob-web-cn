@@ -151,7 +151,7 @@ local translateTable = {}
 -- 翻译模块加载调试开关：
 --   环境变量 POE_TRANSLATE_DEBUG=1 或设置全局 translateDebug=true 时，
 --   会逐文件打印加载详情；默认只打印一行汇总，避免刷屏。
-local translateDebug = true
+local translateDebug = false
 do
     local debugEnv = (os.getenv and os.getenv("POE_TRANSLATE_DEBUG")) or ""
     translateDebug = debugEnv == "1"
@@ -269,26 +269,153 @@ if next(translateTable) then
     -- (e.g. "+25% Chance to Block Spell Damage") rather than StatDescriber
     -- templates. Convert them back to "{0}% Chance to Block Spell Damage" form
     -- so we can look them up in the same statDescriptions translation table.
+    -- 1-based bijective base-26 (A, B, ... Z, AA, AB, ...) used as the tag of the
+    -- temporary "@V..@" marker. Letter tags (not digits) are essential: the second
+    -- gsub pass that captures bare numbers must NOT re-match the digit inside an
+    -- already-generated "@V1@" marker. Lua patterns have no lookbehind, so a
+    -- numeric tag like "@V1@" gets corrupted into "@V@V2@@" (the 1 inside @V1@ is
+    -- captured as a number, then the 2 inside the generated @V2@ too), which breaks
+    -- every item mod line with a ranged value e.g. "(100-150)% increased ...".
+    local function idxToTag(i)
+        local s = ""
+        while i > 0 do
+            i = i - 1
+            s = string.char(65 + (i % 26)) .. s
+            i = math.floor(i / 26)
+        end
+        return s
+    end
     local function resolveToTemplate(text)
         local values = {}
+        local tagToIdx = {}
         local n = 0
-        -- Ranges like (80-120) or (+80-120) become a single placeholder.
-        local templ = text:gsub("%b()", function(s)
+        local function nextTag()
             n = n + 1
-            values[n] = s
-            return "@V" .. n .. "@"
+            return idxToTag(n)
+        end
+        -- Ranges like (80-120) or (100—150) become a single placeholder.
+        local templ = text:gsub("%b()", function(s)
+            local tag = nextTag()
+            tagToIdx[tag] = #values + 1
+            values[#values + 1] = s
+            return "@V" .. tag .. "@"
         end)
         -- Remaining signed/unsigned numbers become placeholders.
         templ = templ:gsub("([%+%-]?%d+%.?%d*)", function(num)
-            n = n + 1
-            values[n] = num
-            return "@V" .. n .. "@"
+            local tag = nextTag()
+            tagToIdx[tag] = #values + 1
+            values[#values + 1] = num
+            return "@V" .. tag .. "@"
         end)
         -- Convert temporary markers to {0}, {1}, ...
-        templ = templ:gsub("@V(%d+)@", function(i)
-            return "{" .. (tonumber(i) - 1) .. "}"
+        templ = templ:gsub("@V(%a+)@", function(tag)
+            return "{" .. ((tagToIdx[tag] or 1) - 1) .. "}"
         end)
         return templ, values
+    end
+
+    -- The corpus is generated line-by-line from GGG's stat descriptions, so any
+    -- stat whose English text wraps onto a second line lands in the table as two
+    -- keys: a front half (carrying the "{0}" placeholder) and a lower-case tail
+    -- ("containing Corrupted Magic Jewels"). PoB renders such stats as a single
+    -- line, whose joined form is therefore never a key.
+    -- Recover those generically instead of special-casing them: split the
+    -- template on whitespace and translate it by longest-match segmentation
+    -- against the corpus keys. Longest match first is what keeps multi-word
+    -- entries (the front half) intact rather than degrading into word-by-word
+    -- lookups that would mangle the sentence.
+    -- Only the leading fragment may be a self-contained phrase; every following
+    -- fragment must start lower-case, the signature of a tail split off a
+    -- wrapped line. Dropping that guard lets unrelated keys chain together and
+    -- turns e.g. "Maximum 1 Stage" into "最大值1 阶".
+    local function splitWords(s)
+        local words = {}
+        for w in s:gmatch("%S+") do
+            words[#words + 1] = w
+        end
+        return words
+    end
+
+    -- increased/reduced must agree with 提高/降低 in the translation. Because the
+    -- corpus stores one tail key for both variants of a wrapped stat, joining
+    -- can silently flip the meaning, so force the result to match the template.
+    -- Only applies when the template is unambiguous (exactly one of the two).
+    local function fixPolarity(templ, translated)
+        local lowered = templ:lower()
+        local inc = lowered:find("increased", 1, true) ~= nil
+        local red = lowered:find("reduced", 1, true) ~= nil
+        if inc == red then
+            return translated
+        end
+        local hasUp = translated:find("提高", 1, true) ~= nil
+        local hasDown = translated:find("降低", 1, true) ~= nil
+        if inc and not hasUp and hasDown then
+            return (translated:gsub("降低", "提高"))
+        end
+        if red and not hasDown and hasUp then
+            return (translated:gsub("提高", "降低"))
+        end
+        return translated
+    end
+
+    local segmentCache = {}
+    -- Translate a template by longest-match segmentation. Returns nil unless
+    -- every segment is a corpus key, so a partial match can never produce a
+    -- half-translated line.
+    local function translateBySegmentation(templ)
+        local cached = segmentCache[templ]
+        if cached ~= nil then
+            return cached or nil
+        end
+        local result = nil
+        local words = splitWords(templ)
+        -- A single segment means the whole template was already a key, which the
+        -- caller checks first; only multi-segment splits are useful here.
+        if #words > 1 then
+            local parts = {}
+            local i = 1
+            local ok = true
+            while i <= #words do
+                local hit = nil
+                for j = #words, i, -1 do
+                    local cand = table.concat(words, " ", i, j)
+                    local candTr = translateTable[cand] or translateTableLower[cand:lower()]
+                    if candTr and (i == 1 or cand:match("^%l")) then
+                        hit = candTr
+                        i = j + 1
+                        break
+                    end
+                    -- PoB's stat describer draws each highlight word (e.g.
+                    -- "Magic", "Jewels") as its own DrawString call, so the
+                    -- background line that T() sees is often truncated right
+                    -- before the last highlight word and the trailing token is
+                    -- missing. Swallow the next Capitalized word so a cand of
+                    -- "containing Corrupted Magic" can still hit the corpus
+                    -- entry "containing Corrupted Magic Jewels".
+                    if j < #words and i > 1 and words[j + 1]:match("^%u") then
+                        local extended = cand .. " " .. words[j + 1]
+                        local extTr = translateTable[extended]
+                            or translateTableLower[extended:lower()]
+                        if extTr and extended:match("^%l") then
+                            hit = extTr
+                            i = j + 2
+                            break
+                        end
+                    end
+                end
+                if not hit then
+                    ok = false
+                    break
+                end
+                parts[#parts + 1] = hit
+            end
+            if ok and #parts > 1 then
+                result = fixPolarity(templ, table.concat(parts))
+            end
+        end
+        -- false marks a known miss so repeated misses skip the O(n^2) scan.
+        segmentCache[templ] = result or false
+        return result
     end
 
     local function T(text)
@@ -297,6 +424,17 @@ if next(translateTable) then
         end
         local prefix, key = splitLeadingEscapes(text)
         key = stripEscapes(key)
+        -- 诊断日志（仅 translateDebug 开启时）：打印所有「像 mod 行」的文本
+        -- （含数字/百分号/括号，或命中关键词），让我们可以看见 PoB 究竟把什么
+        -- 字符串喂给 T()，据此定位「语料有但没翻」的真实差异。
+        local dbg = translateDebug and (
+            key:find("[%d%%%(]")
+            or key:lower():find("jewel") or key:lower():find("corrupted")
+            or key:lower():find("recovered") or key:lower():find("stunning")
+            or key:lower():find("damage taken") or key:lower():find("not supported"))
+        if dbg then
+            print(string.format("[translate] T key=%q", key))
+        end
         local translated = translateTable[key]
         if translated then
             return prefix .. translated
@@ -319,6 +457,21 @@ if next(translateTable) then
             for part in key:gmatch("([^,]+)") do
                 part = part:match("^%s*(.-)%s*$")
                 local partTr = translateTable[part] or translateTableLower[part:lower()]
+                -- Comma-separated lists like "Requires Level 70, 68 Dex, 98 Int"
+                -- often have digits glued to the label; the corpus stores them
+                -- as "{0} Dex" templates. Normalise the part (numbers -> {N})
+                -- and substitute the original digits back once a template hits.
+                if not partTr then
+                    local tpl, values = resolveToTemplate(part)
+                    if tpl ~= part then
+                        partTr = translateTable[tpl] or translateTableLower[tpl:lower()]
+                        if partTr then
+                            partTr = partTr:gsub("{(%d+)}", function(i)
+                                return values[tonumber(i) + 1] or ("{" .. i .. "}")
+                            end)
+                        end
+                    end
+                end
                 if not partTr then
                     allTranslated = false
                     break
@@ -337,14 +490,63 @@ if next(translateTable) then
         -- "{0}% Chance to Block Spell Damage" and look it up case-insensitively.
         if key:find("[%d%%%(]") then
             local templ, values = resolveToTemplate(key)
+            -- PoB's ItemTools.lua:370 appends "(Not supported in PoB yet)" to any
+            -- mod whose id PoB does not parse (Main.lua:117). Tooltip:AddLine hands
+            -- the wrapped whole line to T() with that placeholder baked in, so try
+            -- stripping a trailing "(...)" so the real stat template can still hit
+            -- the corpus; re-attach the original suffix so the notice survives.
+            local appendedSuffix = ""
+            do
+                local stripped, suffix = templ:match("^(.-)%s*(%b())$")
+                if stripped and stripped ~= templ then
+                    local hit = translateTable[stripped] or translateTableLower[stripped:lower()]
+                    if hit then
+                        templ = stripped
+                        appendedSuffix = suffix
+                    end
+                end
+            end
+            -- Try the template as-is first (keeps the leading + / - in the
+            -- rendered output), then fall back to a stripped form so a line
+            -- like "+(30-40) to Intelligence" can still hit "{0} to Intelligence"
+            -- in the corpus. The corpus key doesn't carry the sign, so when
+            -- the stripped form matches we re-prefix the sign onto the
+            -- translated template so the rendered output keeps "+".
+            local sign = ""
+            if templ:sub(1, 1) == "+" or templ:sub(1, 1) == "-" then
+                sign = templ:sub(1, 1)
+            end
             translated = translateTable[templ] or translateTableLower[templ:lower()]
+            if not translated and sign ~= "" then
+                local stripped = templ:sub(2)
+                translated = translateTable[stripped] or translateTableLower[stripped:lower()]
+                if translated then
+                    translated = sign .. translated
+                end
+            end
+            if not translated then
+                -- Last resort inside the template path: rebuild the line from the
+                -- wrapped-stat fragments the corpus stores (front half + tail).
+                translated = translateBySegmentation(templ)
+            end
+            -- 诊断日志（仅 translateDebug 开启时）：模板路径一律打印 key、归一化
+            -- 后的 templ 与命中/未命中，便于看清「没翻」的真实原因（大小写 / 数字
+            -- 格式 / 缺词），无需再按关键词过滤。
+            if translateDebug then
+                if translated then
+                    local result = translated:gsub("{(%d)}", function(i)
+                        return values[tonumber(i) + 1] or ("{" .. i .. "}")
+                    end) .. appendedSuffix
+                    print(string.format("[translate] TEMPLATE %q -> %q -> %q", key, templ, result))
+                    return prefix .. result
+                else
+                    print(string.format("[translate] TEMPLATE MISS key=%q templ=%q", key, templ))
+                end
+            end
             if translated then
                 local result = translated:gsub("{(%d)}", function(i)
                     return values[tonumber(i) + 1] or ("{" .. i .. "}")
-                end)
-                if translateDebug then
-                    print(string.format("[translate] TEMPLATE %q -> %q -> %q", key, templ, result))
-                end
+                end) .. appendedSuffix
                 return prefix .. result
             end
         end
@@ -371,15 +573,24 @@ if next(translateTable) then
             end
         end
         -- Compound labels without a colon (e.g. "Requires Level 60, 138 STR")
-        -- fall back to the longest matching prefix.
-        for i = #key - 1, 1, -1 do
-            translated = translateTable[key:sub(1, i)]
-            if translated then
-                return prefix .. translated .. key:sub(i + 1)
+        -- fall back to the longest matching prefix. Real labels never end in a
+        -- sentence period, so when the key looks like a full sentence we skip
+        -- the fallback: short word-level prefixes (e.g. "Throw" -> "投掷") can
+        -- otherwise collide with gem-name entries and mangle the output
+        -- ("投掷s a mine ...").
+        if not key:find("%.") then
+            for i = #key - 1, 1, -1 do
+                translated = translateTable[key:sub(1, i)]
+                if translated then
+                    return prefix .. translated .. key:sub(i + 1)
+                end
             end
         end
         if translateDebug then
             print(string.format("[translate] MISS %q", key))
+        end
+        if dbg then
+            print(string.format("[translate] T result=%q", text))
         end
         return text
     end
@@ -404,7 +615,7 @@ if next(translateTable) then
     DrawStringCursorIndex = function(size, font, text, x, y)
         return _DrawStringCursorIndex(size, font, T(text), x, y)
     end
-    print("[translate] zh-rCN layer ACTIVE")
+    print("[translate] zh-rCN layer ACTIVE  [marker=DBG-JEWEL-CORRUPTED-2026-09-02]")
 else
     print("[translate] zh-rCN layer DISABLED: no translation modules loaded")
 end
@@ -438,10 +649,53 @@ do
         end))
     end
 
+    -- Turn bare numbers in a stat-description template into {N} placeholders so
+    -- it can match a corpus entry that uses placeholders. New placeholder indices
+    -- continue after the highest existing one (e.g. "{0}% ... maximum of 500%"
+    -- -> "{0}% ... maximum of {1}%") so they never collide with real {0}/{1} slots.
+    local function templatiseNumbers(text)
+        local maxIdx = -1
+        for i in text:gmatch("{(%d+)[^}]*}") do
+            local n = tonumber(i)
+            if n and n > maxIdx then maxIdx = n end
+        end
+        local counter = maxIdx + 1
+        local values = {}
+        local templ = text:gsub("([^%w{}])(%-?%d+%.?%d*)", function(pre, num)
+            local idx = counter
+            counter = counter + 1
+            values[idx] = num
+            return pre .. "{" .. idx .. "}"
+        end)
+        return templ, values
+    end
+
     local function translateText(text)
         local translated = translateTable[normalise(text)]
         if translated then
             return restore(translated, text)
+        end
+        -- Fallback: upstream sometimes hardcodes numbers in the text while the
+        -- corpus uses a placeholder (e.g. "...maximum of 500%" vs "...maximum of {1}%").
+        -- Map bare numbers to placeholders, look up the normalised template, then
+        -- substitute the original numbers back (they are literal, not StatDescriber slots).
+        local templ, values = templatiseNumbers(text)
+        if templ ~= text then
+            translated = translateTable[normalise(templ)]
+            if translated then
+                translated = restore(translated, text)
+                translated = translated:gsub("{(%d)}", function(i)
+                    local idx = tonumber(i)
+                    if values[idx] then
+                        return values[idx]
+                    end
+                    return "{" .. i .. "}"
+                end)
+                if translateDebug then
+                    print(string.format("[translate] STAT-TEMPLATE %q -> %q", text, translated))
+                end
+                return translated
+            end
         end
         return text
     end
@@ -497,18 +751,34 @@ mainObject["ShowErrMsg"] = function(self, msg, ...)
 end
 
 -- Translate whole lines before main:WrapString splits them. Tooltip:AddLine
--- word-wraps long text (gem/skill descriptions, flavour text) into per-line
--- fragments drawn by individual DrawString calls; translating the whole line
--- here (while the full sentence is still intact) lets whole-sentence keys hit.
-local wrapString = mainObject["WrapString"]
-if wrapString and _G.__pobWebTranslate then
+-- word-wraps long text (gem/skill descriptions, flavour text, item mod lines)
+-- into per-line fragments drawn by individual DrawString calls; translating the
+-- whole line here (while the full sentence is still intact) lets whole-sentence
+-- keys hit.
+-- WrapString is defined on the Main instance (Modules/Main.lua:1760), i.e.
+-- mainObject.main, NOT on mainObject itself. Launch only creates that instance
+-- inside launch:OnInit (Launch.lua:71), which runs AFTER this file has finished
+-- executing, so reading mainObject.main here is always nil and the wrapper would
+-- never install. The install is therefore deferred to the OnInit wrapper below.
+local function installWrapStringHook(mainInst)
+    local wrapString = mainInst and mainInst["WrapString"]
     local translateLine = _G.__pobWebTranslate
-    mainObject["WrapString"] = function(self, str, ...)
+    if not (wrapString and translateLine) then
+        print(string.format(
+            "[translate] WrapString hook NOT installed (main=%s, WrapString=%s, T=%s)",
+            tostring(mainInst ~= nil),
+            tostring(wrapString ~= nil),
+            tostring(translateLine ~= nil)))
+        return false
+    end
+    mainInst["WrapString"] = function(self, str, ...)
         if type(str) == "string" then
             str = translateLine(str)
         end
         return wrapString(self, str, ...)
     end
+    print("[translate] WrapString hook installed")
+    return true
 end
 
 -- Hide the check for updates button
@@ -527,6 +797,9 @@ end
 local onInit = mainObject["OnInit"]
 mainObject["OnInit"] = function(self)
     onInit(self)
+    -- self.main only exists after launch:OnInit has run, so this is the earliest
+    -- point where the WrapString wrapper can be installed.
+    installWrapStringHook(self.main)
     self.main.controls.checkUpdate.shown = function()
         return false
     end
@@ -592,4 +865,252 @@ function getBuildCode()
     end
 
     return common.base64.encode(Deflate(xmlText)):gsub("+","-"):gsub("/","_")
+end
+
+-- Minimal JSON serializer (string/number/boolean/array/table only)
+local function toJson(value, indent)
+    indent = indent or 0
+    local spaces = string.rep("  ", indent)
+
+    if type(value) == "string" then
+        -- Escape special characters
+        local escaped = value:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub("\n", "\\n"):gsub("\r", "\\r"):gsub("\t", "\\t")
+        return '"' .. escaped .. '"'
+    elseif type(value) == "number" then
+        return tostring(value)
+    elseif type(value) == "boolean" then
+        return value and "true" or "false"
+    elseif type(value) == "table" then
+        -- Check if it's an array (sequential numeric keys)
+        local isArray = true
+        local maxIndex = 0
+        for k, _ in pairs(value) do
+            if type(k) ~= "number" or k <= 0 or math.floor(k) ~= k then
+                isArray = false
+                break
+            end
+            if k > maxIndex then maxIndex = k end
+        end
+        if isArray and maxIndex > 0 then
+            -- Verify all indices from 1 to maxIndex exist
+            for i = 1, maxIndex do
+                if value[i] == nil then
+                    isArray = false
+                    break
+                end
+            end
+        end
+
+        if isArray and maxIndex > 0 then
+            -- Array
+            local parts = {}
+            for i = 1, maxIndex do
+                parts[i] = toJson(value[i], indent + 1)
+            end
+            if #parts == 0 then
+                return "[]"
+            end
+            return "[\n" .. spaces .. "  " .. table.concat(parts, ",\n" .. spaces .. "  ") .. "\n" .. spaces .. "]"
+        else
+            -- Object
+            local parts = {}
+            for k, v in pairs(value) do
+                if type(k) == "string" then
+                    table.insert(parts, '"' .. k .. '": ' .. toJson(v, indent + 1))
+                end
+            end
+            if #parts == 0 then
+                return "{}"
+            end
+            table.sort(parts)
+            return "{\n" .. spaces .. "  " .. table.concat(parts, ",\n" .. spaces .. "  ") .. "\n" .. spaces .. "}"
+        end
+    else
+        return "null"
+    end
+end
+
+function getBuildStats()
+    if not mainObject.main then
+        error("getBuildStats: mainObject.main is nil")
+    end
+
+    local build = mainObject.main.modes["BUILD"]
+    if not build then
+        error("getBuildStats: not in BUILD mode")
+    end
+
+    local calcsTab = build.calcsTab
+    if not calcsTab or not calcsTab.mainOutput then
+        error("getBuildStats: calcsTab or mainOutput not available")
+    end
+
+    local mainOutput = calcsTab.mainOutput
+    local stats = {}
+
+    -- Collect displayStats (key attributes shown in PoB UI)
+    if build.displayStats then
+        for _, statData in ipairs(build.displayStats) do
+            local statName = statData.stat
+            if statName and mainOutput[statName] ~= nil then
+                stats[statName] = mainOutput[statName]
+            end
+            -- Handle childStat (nested stats like SkillDPS)
+            if statData.childStat and mainOutput[statData.childStat] then
+                stats[statData.childStat] = mainOutput[statData.childStat]
+            end
+        end
+    end
+
+    -- Collect extraSaveStats (additional important stats)
+    if build.extraSaveStats then
+        for _, statData in ipairs(build.extraSaveStats) do
+            local statName = statData.stat
+            if statName and mainOutput[statName] ~= nil then
+                stats[statName] = mainOutput[statName]
+            end
+        end
+    end
+
+    return toJson(stats)
+end
+
+local function pobWebMatchFlags(reqFlags, notFlags, flags)
+    flags = flags or {}
+    if type(reqFlags) == "string" then
+        reqFlags = { reqFlags }
+    end
+    if reqFlags then
+        for _, flag in ipairs(reqFlags) do
+            if not flags[flag] then
+                return false
+            end
+        end
+    end
+    if type(notFlags) == "string" then
+        notFlags = { notFlags }
+    end
+    if notFlags then
+        for _, flag in ipairs(notFlags) do
+            if flags[flag] then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+local function pobWebFormatNumber(value)
+    local s = tostring(value)
+    local sign = ""
+    if s:sub(1, 1) == "+" or s:sub(1, 1) == "-" then
+        sign = s:sub(1, 1)
+        s = s:sub(2)
+    end
+    local integer, decimal = s:match("^(%d+)(%.%d+)$")
+    if not integer then
+        integer = s
+        decimal = ""
+    end
+    local formatted = integer:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+    return sign .. formatted .. decimal
+end
+
+local function pobWebTranslateLabel(label)
+    if _G.__pobWebTranslate then
+        local translated = _G.__pobWebTranslate(label)
+        if translated and translated ~= label then
+            return translated
+        end
+    end
+    return label
+end
+
+local function pobWebCompareOutput(build, baseOutput, compareOutput, actor, statList)
+    local changes = {}
+    local flags = actor and actor.mainSkill and actor.mainSkill.skillFlags or {}
+    for _, statData in ipairs(statList or {}) do
+        if statData.stat and pobWebMatchFlags(statData.flag, statData.notFlag, flags) and not statData.childStat and statData.stat ~= "SkillDPS" then
+            local statVal1 = compareOutput[statData.stat] or 0
+            local statVal2 = baseOutput[statData.stat] or 0
+            local diff = statVal1 - statVal2
+            if statData.stat == "FullDPS" and not compareOutput[statData.stat] then
+                diff = 0
+            end
+            if (diff > 0.001 or diff < -0.001) and (not statData.condFunc or statData.condFunc(statVal1, compareOutput) or statData.condFunc(statVal2, baseOutput)) then
+                local val = diff * ((statData.pc or statData.mod) and 100 or 1)
+                local fmt = statData.fmt or ".0f"
+                local valStr = string.format("%+" .. fmt, val)
+                local number, suffix = valStr:match("^([%+%-]?%d+%.%d+)(%D*)$")
+                if number then
+                    valStr = number:gsub("0+$", ""):gsub("%.$", "") .. suffix
+                end
+                valStr = pobWebFormatNumber(valStr)
+                local percent = nil
+                local percentText = ""
+                if statData.compPercent and statVal1 ~= 0 and statVal2 ~= 0 then
+                    percent = statVal1 / statVal2 * 100 - 100
+                    percentText = string.format(" (%+.1f%%)", percent)
+                end
+                local positive = (statData.lowerIsBetter and diff < 0) or ((not statData.lowerIsBetter) and diff > 0)
+                local label = pobWebTranslateLabel(statData.label or statData.stat)
+                table.insert(changes, {
+                    stat = statData.stat,
+                    label = label,
+                    before = statVal2,
+                    after = statVal1,
+                    diff = val,
+                    percent = percent,
+                    positive = positive,
+                    lowerIsBetter = statData.lowerIsBetter and true or false,
+                    text = valStr .. " " .. label .. percentText,
+                })
+            end
+        end
+    end
+    return changes
+end
+
+function getItemCompareStats(slotName, itemRaw)
+    if not mainObject.main then
+        error("getItemCompareStats: mainObject.main is nil")
+    end
+    local build = mainObject.main.modes["BUILD"]
+    if not build then
+        error("getItemCompareStats: not in BUILD mode")
+    end
+    if not slotName or slotName == "" then
+        error("getItemCompareStats: slotName is required")
+    end
+
+    local itemsTab = build.itemsTab
+    if not itemsTab or not itemsTab.slots or not itemsTab.slots[slotName] then
+        error("getItemCompareStats: slot not found: " .. tostring(slotName))
+    end
+    if not build.calcsTab or not build.calcsTab.GetMiscCalculator then
+        error("getItemCompareStats: calculator not available")
+    end
+
+    local repItem = nil
+    local mode = "remove"
+    if itemRaw and itemRaw ~= "" then
+        repItem = new("Item", itemRaw)
+        if not repItem or not repItem.base then
+            error("getItemCompareStats: invalid item raw")
+        end
+        repItem:BuildAndParseRaw()
+        mode = "replace"
+    end
+
+    local calcFunc, calcBase = build.calcsTab:GetMiscCalculator()
+    local outputNew = calcFunc({ repSlotName = slotName, repItem = repItem })
+    local actor = build.calcsTab.mainEnv and build.calcsTab.mainEnv.player
+    local changes = pobWebCompareOutput(build, calcBase, outputNew, actor, build.displayStats)
+
+    return toJson({
+        slotName = slotName,
+        mode = mode,
+        itemName = repItem and repItem.name or nil,
+        changes = changes,
+    })
 end
