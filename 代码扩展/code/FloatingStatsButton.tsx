@@ -28,7 +28,24 @@ interface CompareResult {
 const BALL_SIZE = 56;
 const PANEL_WIDTH = 520;
 const PANEL_MAX_HEIGHT = 640;
-const DEBUG_PREFIX = "[FloatingStatsButton]";
+
+const SLOT_OPTIONS = [
+  { value: "Weapon 1", label: "主武器" },
+  { value: "Weapon 2", label: "副武器" },
+  { value: "Helmet", label: "头盔" },
+  { value: "Body Armour", label: "身体护甲" },
+  { value: "Gloves", label: "手套" },
+  { value: "Boots", label: "鞋子" },
+  { value: "Belt", label: "腰带" },
+  { value: "Amulet", label: "项链" },
+  { value: "Ring 1", label: "戒指 1" },
+  { value: "Ring 2", label: "戒指 2" },
+  { value: "Flask 1", label: "药剂 1" },
+  { value: "Flask 2", label: "药剂 2" },
+  { value: "Flask 3", label: "药剂 3" },
+  { value: "Flask 4", label: "药剂 4" },
+  { value: "Flask 5", label: "药剂 5" },
+] as const;
 
 type ToolKey = "buildStats" | "itemCompare";
 type ResultView = "compare" | "raw";
@@ -41,13 +58,16 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
   });
   const [activeTool, setActiveTool] = useState<ToolKey>("itemCompare");
   const [resultView, setResultView] = useState<ResultView>("compare");
-  const [slotName, setSlotName] = useState("Weapon 2");
+  const [slotName, setSlotName] = useState<string>(SLOT_OPTIONS[1].value);
   const [itemRaw, setItemRaw] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH);
+  const [resizing, setResizing] = useState(false);
+  const resizeStart = useRef({ x: 0, width: PANEL_WIDTH });
   const ballRef = useRef<HTMLDivElement>(null);
 
   const parsedCompareResult = useMemo<CompareResult | null>(() => {
@@ -60,25 +80,16 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
     }
   }, [activeTool, result]);
 
-  useEffect(() => {
-    console.log(DEBUG_PREFIX, "loaded", {
-      ballSize: BALL_SIZE,
-      position,
-      viewport: { width: window.innerWidth, height: window.innerHeight },
-    });
-  }, []);
-
   const getPanelPosition = useCallback(() => {
     const rightSpace = window.innerWidth - position.left - BALL_SIZE;
-    const panelLeft = rightSpace >= PANEL_WIDTH + 8
+    const panelLeft = rightSpace >= panelWidth + 8
       ? position.left + BALL_SIZE + 8
-      : Math.max(8, position.left - PANEL_WIDTH - 8);
+      : Math.max(8, position.left - panelWidth - 8);
     const panelTop = Math.max(8, Math.min(position.top, window.innerHeight - PANEL_MAX_HEIGHT - 8));
     return { top: panelTop, left: panelLeft };
-  }, [position]);
+  }, [position, panelWidth]);
 
   const handleBallMouseDown = useCallback((e: React.MouseEvent) => {
-    console.log(DEBUG_PREFIX, "ball mousedown", { x: e.clientX, y: e.clientY, position });
     setDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
     setDragOffset({ x: e.clientX - position.left, y: e.clientY - position.top });
@@ -99,7 +110,6 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
       const dx = e.clientX - dragStart.x;
       const dy = e.clientY - dragStart.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      console.log(DEBUG_PREFIX, "ball mouseup", { x: e.clientX, y: e.clientY, distance });
       if (distance < 5) {
         setExpanded((prev) => !prev);
       }
@@ -113,6 +123,31 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
     };
   }, [dragging, dragOffset, dragStart]);
 
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing(true);
+    resizeStart.current = { x: e.clientX, width: panelWidth };
+  }, [panelWidth]);
+
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const dx = resizeStart.current.x - e.clientX;
+      const newWidth = Math.max(320, Math.min(window.innerWidth - 16, resizeStart.current.width + dx));
+      setPanelWidth(newWidth);
+    };
+    const handleMouseUp = () => setResizing(false);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizing]);
+
   const runTool = useCallback(async () => {
     setLoading(true);
     setResult(null);
@@ -123,7 +158,6 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
       setResult(json);
       setResultView(activeTool === "itemCompare" ? "compare" : "raw");
     } catch (error) {
-      console.error(DEBUG_PREFIX, "tool failed", error);
       setResult(`Error: ${error instanceof Error ? error.message : String(error)}`);
       setResultView("raw");
     } finally {
@@ -164,8 +198,22 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
       {expanded && (
         <div
           className="pw:fixed pw:z-50 pw:bg-white pw:shadow-lg pw:rounded pw:border pw:border-gray-300 pw:text-gray-900"
-          style={{ top: panelPos.top, left: panelPos.left, width: PANEL_WIDTH, maxHeight: PANEL_MAX_HEIGHT, pointerEvents: "auto" }}
+          style={{ top: panelPos.top, left: panelPos.left, width: panelWidth, maxHeight: PANEL_MAX_HEIGHT, pointerEvents: "auto" }}
         >
+          <div
+            onMouseDown={handleResizeMouseDown}
+            title="拖动调整宽度"
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 6,
+              cursor: "ew-resize",
+              pointerEvents: "auto",
+              zIndex: 10,
+            }}
+          />
           <div className="pw:flex pw:items-center pw:justify-between pw:px-3 pw:py-2 pw:border-b pw:border-gray-200">
             <div className="pw:font-semibold pw:text-sm">PoB 测试工具</div>
             <button type="button" onClick={() => setExpanded(false)} className="pw:text-gray-500 pw:hover:text-gray-800 pw:text-lg">×</button>
@@ -183,13 +231,20 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
                 <div className="pw:space-y-2">
                   <div className="pw:text-xs pw:text-gray-600">获取替换/移除装备后的增减数据。留空物品文本=移除当前槽位装备。</div>
                   <label className="pw:block pw:text-xs pw:font-medium">
-                    槽位名
+                    槽位
                     <input
+                      type="text"
+                      list="slot-options"
                       value={slotName}
                       onChange={(e) => setSlotName(e.target.value)}
-                      className="pw:mt-1 pw:w-full pw:border pw:border-gray-300 pw:rounded pw:px-2 pw:py-1 pw:text-xs"
-                      placeholder="Weapon 2 / Helmet / Body Armour / Ring 1 ..."
+                      className="pw:mt-1 pw:w-full pw:border pw:border-gray-300 pw:rounded pw:px-2 pw:py-1 pw:text-xs pw:bg-white"
+                      placeholder="选择或输入槽位名称"
                     />
+                    <datalist id="slot-options">
+                      {SLOT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </datalist>
                   </label>
                   <label className="pw:block pw:text-xs pw:font-medium">
                     新物品文本（可选）

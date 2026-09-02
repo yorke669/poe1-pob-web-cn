@@ -65,6 +65,9 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
   const [dragging, setDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [panelWidth, setPanelWidth] = useState(PANEL_WIDTH);
+  const [resizing, setResizing] = useState(false);
+  const resizeStart = useRef({ x: 0, width: PANEL_WIDTH });
   const ballRef = useRef<HTMLDivElement>(null);
 
   const parsedCompareResult = useMemo<CompareResult | null>(() => {
@@ -79,12 +82,12 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
 
   const getPanelPosition = useCallback(() => {
     const rightSpace = window.innerWidth - position.left - BALL_SIZE;
-    const panelLeft = rightSpace >= PANEL_WIDTH + 8
+    const panelLeft = rightSpace >= panelWidth + 8
       ? position.left + BALL_SIZE + 8
-      : Math.max(8, position.left - PANEL_WIDTH - 8);
+      : Math.max(8, position.left - panelWidth - 8);
     const panelTop = Math.max(8, Math.min(position.top, window.innerHeight - PANEL_MAX_HEIGHT - 8));
     return { top: panelTop, left: panelLeft };
-  }, [position]);
+  }, [position, panelWidth]);
 
   const handleBallMouseDown = useCallback((e: React.MouseEvent) => {
     setDragging(true);
@@ -119,6 +122,31 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [dragging, dragOffset, dragStart]);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing(true);
+    resizeStart.current = { x: e.clientX, width: panelWidth };
+  }, [panelWidth]);
+
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const dx = resizeStart.current.x - e.clientX;
+      const newWidth = Math.max(320, Math.min(window.innerWidth - 16, resizeStart.current.width + dx));
+      setPanelWidth(newWidth);
+    };
+    const handleMouseUp = () => setResizing(false);
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizing]);
 
   const runTool = useCallback(async () => {
     setLoading(true);
@@ -170,8 +198,22 @@ export const FloatingStatsButton: React.FC<FloatingStatsButtonProps> = ({ onGetS
       {expanded && (
         <div
           className="pw:fixed pw:z-50 pw:bg-white pw:shadow-lg pw:rounded pw:border pw:border-gray-300 pw:text-gray-900"
-          style={{ top: panelPos.top, left: panelPos.left, width: PANEL_WIDTH, maxHeight: PANEL_MAX_HEIGHT, pointerEvents: "auto" }}
+          style={{ top: panelPos.top, left: panelPos.left, width: panelWidth, maxHeight: PANEL_MAX_HEIGHT, pointerEvents: "auto" }}
         >
+          <div
+            onMouseDown={handleResizeMouseDown}
+            title="拖动调整宽度"
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 6,
+              cursor: "ew-resize",
+              pointerEvents: "auto",
+              zIndex: 10,
+            }}
+          />
           <div className="pw:flex pw:items-center pw:justify-between pw:px-3 pw:py-2 pw:border-b pw:border-gray-200">
             <div className="pw:font-semibold pw:text-sm">PoB 测试工具</div>
             <button type="button" onClick={() => setExpanded(false)} className="pw:text-gray-500 pw:hover:text-gray-800 pw:text-lg">×</button>
