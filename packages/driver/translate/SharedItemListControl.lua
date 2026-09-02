@@ -1,8 +1,6 @@
--- Auto-generated from PoeCharm translation CSV.
--- Do not edit manually; run tools/translate/sync-from-poecharm.py.
 return {
-  ["Shared items:"] = "共享物品:",
-  ["This is a list of items that will be shared between all of"] = "这是将在你的所有构筑之间共享的",
-  ["your builds."] = "物品的列表。",
-  ["one of the other lists."] = "此列表中。",
+    ["Shared items:"] = "共享物品:",
+    ["This is a list of items that will be shared between all of"] = "这是将在你的所有构筑之间共享的",
+    ["your builds."] = "物品的列表。",
+    ["one of the other lists."] = "此列表中。",
 }

@@ -1,10 +1,8 @@
--- Auto-generated from PoeCharm translation CSV.
--- Do not edit manually; run tools/translate/sync-from-poecharm.py.
 return {
-  ["(maximum life)"] = "(最大生命)",
-  ["x {0}% (percentage of life to maximum leech rate)"] = "x {0}% (最大生命偷取速率占总量百分比)",
-  ["(maximum energy shield)"] = "(最大ES)",
-  ["(percentage of energy shield to maximum leech rate)"] = "(最大ES偷取速率占总量百分比)",
-  ["(maximum mana)"] = "(最大魔力)",
-  ["(percentage of mana to maximum leech rate)"] = "(最大魔力偷取速率占总量百分比)",
+    ["(maximum life)"] = "(最大生命)",
+    ["x {0}% (percentage of life to maximum leech rate)"] = "x {0}% (最大生命偷取速率占总量百分比)",
+    ["(maximum energy shield)"] = "(最大ES)",
+    ["(percentage of energy shield to maximum leech rate)"] = "(最大ES偷取速率占总量百分比)",
+    ["(maximum mana)"] = "(最大魔力)",
+    ["(percentage of mana to maximum leech rate)"] = "(最大魔力偷取速率占总量百分比)",
 }

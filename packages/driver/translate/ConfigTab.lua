@@ -1,16 +1,14 @@
--- Auto-generated from PoeCharm translation CSV.
--- Do not edit manually; run tools/translate/sync-from-poecharm.py.
 return {
-  ["Add Mod"] = "添加修正",
-  ["Disabling this group will give you:"] = "^7弃用这个修正集会赋予你:",
-  ["Enabling this group will give you:"] = "^7启用这个修正集会赋予你:",
-  ["Config set:"] = "配置集:",
-  ["Hide Ineligible Configurations"] = "隐藏不符合条件的配置",
-  ["Show All Configurations"] = "显示全部配置",
-  ["This config option is conditional with missing source and is invalid."] = "此配置选项存在条件且缺少来源，不生效。",
-  ["Manage Config Sets"] = "管理配置集",
-  ["Add Mod Group"] = "添加修正集",
-  ["No matching modifiers found"] = "未找到匹配的修正",
-  ["Supported: Yes"] = "^7支持: ^2是",
-  ["Supported: No"] = "^7支持: ^1否",
+    ["Add Mod"] = "添加修正",
+    ["Disabling this group will give you:"] = "^7弃用这个修正集会赋予你:",
+    ["Enabling this group will give you:"] = "^7启用这个修正集会赋予你:",
+    ["Config set:"] = "配置集:",
+    ["Hide Ineligible Configurations"] = "隐藏不符合条件的配置",
+    ["Show All Configurations"] = "显示全部配置",
+    ["This config option is conditional with missing source and is invalid."] = "此配置选项存在条件且缺少来源，不生效。",
+    ["Manage Config Sets"] = "管理配置集",
+    ["Add Mod Group"] = "添加修正集",
+    ["No matching modifiers found"] = "未找到匹配的修正",
+    ["Supported: Yes"] = "^7支持: ^2是",
+    ["Supported: No"] = "^7支持: ^1否",
 }

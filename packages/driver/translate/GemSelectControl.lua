@@ -1,7 +1,5 @@
--- Auto-generated from PoeCharm translation CSV.
--- Do not edit manually; run tools/translate/sync-from-poecharm.py.
 return {
-  ["Prefix tag searches with a colon and exclude tags with a dash. e.g. :fire:lightning:-cold:area"] = "使用带冒号标签搜索，用短横线排除标签。例如：:fire:lightning:-cold:area",
-  ["\"Socketed in\" item must be set in order to add an imbued support."] = "“插槽内”物品必须按顺序设置以加入注入辅助。",
-  ["Only one imbued support is allowed per item."] = "每个物品只能使用一项注入辅助。",
+    ["Prefix tag searches with a colon and exclude tags with a dash. e.g. :fire:lightning:-cold:area"] = "使用带冒号标签搜索，用短横线排除标签。例如：:fire:lightning:-cold:area",
+    ["\"Socketed in\" item must be set in order to add an imbued support."] = "“插槽内”物品必须按顺序设置以加入注入辅助。",
+    ["Only one imbued support is allowed per item."] = "每个物品只能使用一项注入辅助。",
 }

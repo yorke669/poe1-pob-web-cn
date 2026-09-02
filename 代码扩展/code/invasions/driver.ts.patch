@@ -1,0 +1,56 @@
+diff --git a/packages/driver/src/js/driver.ts b/packages/driver/src/js/driver.ts
+index 3716d9b..a6f82ad 100644
+--- a/packages/driver/src/js/driver.ts
++++ b/packages/driver/src/js/driver.ts
+@@ -359,6 +359,10 @@ export class Driver {
+ 
+     this.overlayManager = new ReactOverlayManager(overlayContainer);
+     const currentState = this.canvasManager.getCurrentState();
++    console.log("[FloatingStatsButton] driver overlay initial render", {
++      hasWorker: !!this.driverWorker,
++      hasOverlayManager: !!this.overlayManager,
++    });
+     this.overlayManager.render({
+       callbacks: toolbarCallbacks,
+       keyboardState: this.domKeyboardState,
+@@ -369,6 +373,8 @@ export class Driver {
+       renderStats: this.renderStats,
+       performanceVisible: this.performanceVisible,
+       externalComponent: this.externalComponent,
++      onGetStats: () => this.getBuildStats(),
++      onGetItemCompareStats: (slotName: string, itemRaw?: string) => this.getItemCompareStats(slotName, itemRaw),
+       onLayerVisibilityChange: (layer: number, sublayer: number, visible: boolean) => {
+         this.setLayerVisible(layer, sublayer, visible);
+       },
+@@ -434,6 +440,22 @@ export class Driver {
+     return code;
+   }
+ 
++  async getBuildStats(): Promise<string> {
++    const stats = await this.driverWorker?.getBuildStats();
++    if (!stats) {
++      throw new Error("getBuildStats failed");
++    }
++    return stats;
++  }
++
++  async getItemCompareStats(slotName: string, itemRaw = ""): Promise<string> {
++    const stats = await this.driverWorker?.getItemCompareStats(slotName, itemRaw);
++    if (!stats) {
++      throw new Error("getItemCompareStats failed");
++    }
++    return stats;
++  }
++
+   async flushInput(): Promise<void> {
+     await this.pendingClipboardAction;
+     await this.driverWorker?.flushInput();
+@@ -490,6 +512,8 @@ export class Driver {
+       renderStats: this.renderStats,
+       performanceVisible: this.performanceVisible,
+       externalComponent: this.externalComponent,
++      onGetStats: () => this.getBuildStats(),
++      onGetItemCompareStats: (slotName: string, itemRaw?: string) => this.getItemCompareStats(slotName, itemRaw),
+     });
+   }
+ 
