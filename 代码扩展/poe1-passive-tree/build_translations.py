@@ -5,7 +5,8 @@
 
 源 CSV (data/translations/):
   tree_dn.csv      节点显示名 (name 表)
-  tree_sd.csv      词缀描述行 (stat 表)
+  tree_sd.csv      词缀描述行 (stat 表, 具体数值写死)
+  statDescriptions.csv  官方占位翻译 (stat 表, 用 {0} 代替数值, 后加载覆盖同名项)
   tree_rt.csv      提醒文本 (reminder 表)
   passiveTree.csv  提醒/升华描述 (reminder 表, 与 tree_rt 合并)
 
@@ -41,6 +42,8 @@ def load(path):
 def main():
     dn = load(os.path.join(SRC, "tree_dn.csv"))
     sd = load(os.path.join(SRC, "tree_sd.csv"))
+    sd2 = load(os.path.join(SRC, "statDescriptions.csv"))  # 官方 {0} 占位翻译
+    sd.update(sd2)  # statDescriptions 覆盖 tree_sd 同名键
     rt = load(os.path.join(SRC, "tree_rt.csv"))
     rt2 = load(os.path.join(SRC, "passiveTree.csv"))
     rt.update(rt2)  # passiveTree 覆盖 tree_rt 同名键

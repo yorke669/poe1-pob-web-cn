@@ -683,13 +683,75 @@
     });
   }
 
+  // 把字面 \\n (运行时 2 字符: 反斜杠 + n) 和真实 \n 都统一成一个空格，
+  // 多行词缀(如 Ghost Reaver 的 3 行效果)在匹配/显示时都当成单行空格分隔。
+  function cleanNewlines(s) {
+    return String(s)
+      .replace(/\\+n/g, " ") // 1+ 个反斜杠 + n（老抓取数据是 \\\\n，lua 版是 \\n）
+      .replace(/\n/g, " ")   // 真实换行
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   // 英文 -> 中文 查表翻译；查不到则原样返回（字典来自 data/translations.js 的 window.POE1_TREE_TR）
   function tr(text, table) {
     if (text == null) return text;
     var k = String(text).trim();
     if (!k) return text;
     var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR[table]) || {};
-    return dict[k] || text;
+    var mk = cleanNewlines(k); // 匹配前先把 \\n / \n 换成空格
+    if (dict[mk]) return cleanNewlines(dict[mk]);
+    // 占位回退：stat 表含官方 {0} 占位翻译（如 "{0}% increased Damage..."），
+    // 把输入里的具体数值归一为 # 后再匹配，并把实际数值填回译文 {0}/{1}...
+    if (table === "stat") {
+      var nk = normKey(mk);
+      var dk = normIndex()[nk];
+      if (dk) {
+        var val = dict[dk];
+        var nums = mk.match(/[+-]?\d+(?:\.\d+)?/g) || [];
+        var out = val.replace(/\{(\d+)\}/g, function (_, n) {
+          return nums[+n] != null ? nums[+n] : "{" + n + "}";
+        });
+        return cleanNewlines(out);
+      }
+    }
+    // 多段词缀：数据里常用 " / " 或换行把多条效果拼成一条（如 "+1 to Level... / Lose 10%..."），
+    // 而字典是逐条分开的。整条没匹配上就按分隔符拆开逐段翻译再拼回（必须整条优先，
+    // 否则 Ghost Reaver 那种字典本就是三行合一的整条会先被拆坏）。
+    var segs = mk.split(/\s*\/\s*|\n/);
+    if (segs.length > 1) {
+      var joined = segs.map(function (s) { return tr(s, table); }).join(" / ");
+      if (joined !== mk) return joined;
+    }
+    return cleanNewlines(text);
+  }
+
+  // 把字符串里的数值(含正负号/小数)和 {n} 占位符都压成 #, 用于模糊匹配
+  function normKey(s) {
+    return cleanNewlines(s)
+      .replace(/\{\d+\}/g, "#")            // 已有的 {0} 占位符 -> #
+      .replace(/[+-]?\d+(?:\.\d+)?/g, "#"); // 裸数字 -> #
+  }
+
+  // 懒构建 stat 表"归一化键 -> 原键"索引
+  var _normCache = null;
+  function normIndex() {
+    if (_normCache) return _normCache;
+    var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR.stat) || {};
+    var seen = {}; // nk -> { dk, ph }
+    for (var dk in dict) {
+      var nk = normKey(dk);
+      var ph = dk.indexOf("{") >= 0;
+      if (!seen[nk]) {
+        seen[nk] = { dk: dk, ph: ph };
+      } else if (ph && !seen[nk].ph) {
+        seen[nk] = { dk: dk, ph: true }; // 同名归一键优先选含占位符的条目(可填充数值)
+      }
+    }
+    var idx = {};
+    for (var k in seen) idx[k] = seen[k].dk;
+    _normCache = idx;
+    return idx;
   }
 
   function showTooltip(clientX, clientY, id) {
@@ -934,9 +996,9 @@
 
   // ---------- 数据源切换 ----------
   var DATA_FILES = [
-    { file: "poe1-tree.js", label: "PoB v2.67.2（原抓取，3_29）" },
     { file: "poe1-tree-3.29.js", label: "3.29 官方 Lua 生成" },
-    { file: "poe1-tree-3_26.js", label: "3.26 官方 Lua 生成" }
+    { file: "poe1-tree-3_26.js", label: "3.26 官方 Lua 生成" },
+    { file: "poe1-tree.js", label: "PoB v2.67.2（原抓取，3_29）" }
   ];
   var ALL_TREES = {};
   var selData = document.getElementById("sel-data");
