@@ -1,0 +1,13 @@
+
+# GitHub Personal Access Token (set 2026-09-04)
+export GITHUB_TOKEN='\'
+export GH_TOKEN=\EOF
+cat > \/git-credential-env\ <<'HELPER'
+#!/bin/bash
+if [ \\ = \get\ ] && [ -n \\ ]; then
+  echo \protocol=https  echo \host=github.com  echo \username=yorke669  echo \password=\
+fi
+HELPER
+chmod +x \/git-credential-envgit config --global credential.helper \!\/git-credential-envcd /opt/poe/poe1-pob-web-cn && git config --unset credential.helper 2>/dev/null
+rm -f /root/.git-credentials \C:\Users\yorke/.git-credentials\ 2>/dev/null
+echo '=== config ==='; git config --global --get credential.helper; echo '=== test ls-remote ==='; source \\; git ls-remote origin HEAD 2>&1 | head -n 3; echo DONE"

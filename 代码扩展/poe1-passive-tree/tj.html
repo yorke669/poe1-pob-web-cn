@@ -153,7 +153,7 @@
   </div>
   <aside>
     <div class="scroll">
-      <div class="sec-title">使用说明<span class="help-tip" tabindex="0">?<span class="tip-pop">用法：在左侧天赋树点击一个紫色珠宝插槽选定珠宝孔；然后在下方选择「军团珠宝类型」与「征服者」，并用「全选（圈内）」或逐个点选受影响的天赋节点；最后在「查看效果 / 搜索种子」中查看或扫描。</span></span></div>
+      <div class="sec-title">使用说明<span class="help-tip" tabindex="0">?<span class="tip-pop">用法：在左侧天赋树点击一个紫色珠宝插槽选定珠宝孔；选中后圈内天赋默认全部生效（青色亮起）。点击圈内某个天赋可将其「取消」（灰掉），再次点击恢复生效；也可用「全选（圈内）」或「全取消」批量操作。下方选择「军团珠宝类型」与「征服者」，最后在「查看效果 / 搜索种子」中查看或扫描。</span></span></div>
       <div class="pick-box">
         <div class="pick-info" id="tj-socket-info"></div>
         <div class="tj-row"><label>军团珠宝类型</label><select id="tj-jewel"></select></div>
@@ -473,19 +473,29 @@
       ? '<div class="muted">（仅显示前 ' + capped.length + ' 个种子，命中 ' + entries.length + ' 个）</div>' : "");
   }
 
-  function tjFind() {
-    if (!tj.socket || !NODES[tj.socket]) { alert("请先点击上方按钮，在天赋树上选择一个珠宝孔。"); return; }
-    var keys = tree.getRingKeys();
+  // 取搜索范围（passive 索引）：默认只在「选中的（亮起的）圈内天赋」里找；
+  // opts.all 为 true 时退回整圈（预留给后续「全范围查找」）。
+  function getSearchIndices(opts) {
+    opts = opts || {};
+    var keys = opts.all ? tree.getRingKeys() : (tree.getSelectedInRing());
+    if (!keys.length) keys = tree.getRingKeys();   // 没有任何选中时，退回整圈，保证可搜
     var indices = [];
     keys.forEach(function (gid) {
       var p = PoTimeless.passiveByGraphId(Number(gid));
       if (p) indices.push(p.i);
     });
+    return indices;
+  }
+
+  function tjFind(opts) {
+    if (!tj.socket || !NODES[tj.socket]) { alert("请先点击上方按钮，在天赋树上选择一个珠宝孔。"); return; }
+    var indices = getSearchIndices(opts);
+    if (!indices.length) { alert("该珠宝孔半径内没有可影响的天赋节点。"); return; }
     var selected = selectedStats.map(function (s) { return { id: s.id, min: Math.max(0, s.min | 0) }; });
     if (!selected.length) { alert("请至少勾选一个词条（可点「全选词条」或用上方下拉添加）。"); return; }
     var overallMin = Math.max(0, Number(tjOverallMin.value) || 0);
     var want = selected.map(function (s) { return s.id; });
-    tjSeeds.className = "muted"; tjSeeds.textContent = "扫描中…";
+    tjSeeds.className = "muted"; tjSeeds.textContent = "在所选节点范围内扫描中…";
     setTimeout(function () {
       var results = PoTimeless.reverseSearch(indices, want, Number(tj.jewel), tj.conqueror, function () { return true; });
       tjShowSeeds(results, selected, overallMin);

@@ -341,7 +341,8 @@
         var alloc = mode === "jewel" ? selInRing : !!state.allocated[n.id];
         var sp = alloc ? (n.sp || n.isp) : (n.isp || n.sp);
         var dimOut = mode === "jewel" && state.selectedSocket && !state.ringKeys[n.id] && n.type !== "socket";
-        ctx.globalAlpha = dimOut ? 0.38 : (ascDim ? 0.4 : 1);
+        var cancelled = mode === "jewel" && inRing && !selInRing;
+        ctx.globalAlpha = (dimOut || cancelled) ? 0.4 : (ascDim ? 0.4 : 1);
 
         if (mode === "build" && !alloc && canSet[n.id]) {
           ctx.beginPath();
@@ -350,7 +351,8 @@
           ctx.lineWidth = Math.max(8, 1.5 / B);
           ctx.stroke();
         }
-        if (mode === "jewel" && inRing && !selInRing) {
+        if (mode === "jewel" && selInRing) {
+          // 生效（选中）节点：青色高亮环，亮起
           ctx.beginPath();
           ctx.arc(n.x, n.y, R + 14, 0, Math.PI * 2);
           ctx.strokeStyle = "#67e8f9";
@@ -368,8 +370,9 @@
         ctx.beginPath();
         ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
         var fillColor;
-        if (alloc) fillColor = (n.type === "normal" ? "#8a6f2e" : NODE_FILL[n.type] || "#566274");
-        else if (state.asc && isAsc && node.ascendancy === state.asc) fillColor = "#9a6b2f";
+        if (state.asc && isAsc && node.ascendancy === state.asc) fillColor = "#9a6b2f";
+        else if (alloc) fillColor = NODE_FILL[n.type] || "#566274";
+        else if (cancelled) fillColor = "#39414f";
         else fillColor = NODE_FILL[n.type] || "#566274";
         ctx.fillStyle = fillColor;
         ctx.fill();
@@ -389,18 +392,14 @@
         if (state.asc && isAsc && node.ascendancy === state.asc) {
           ctx.strokeStyle = "#f5c542";
           ctx.lineWidth = Math.max(6, 2 / B);
+        } else if (alloc) {
+          ctx.strokeStyle = "#67e8f9";
+          ctx.lineWidth = Math.max(5, 1 / B);
         } else {
-          ctx.strokeStyle = alloc ? "#fff1bf" : (n.type === "classStart" ? "#f8fafc" : "#9aa7b8");
-          ctx.lineWidth = Math.max(alloc ? 5 : 2.5, 1 / B);
+          ctx.strokeStyle = cancelled ? "#5b6677" : (n.type === "classStart" ? "#f8fafc" : "#9aa7b8");
+          ctx.lineWidth = Math.max(2.5, 1 / B);
         }
         ctx.stroke();
-        if (alloc) {
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, R + 6, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(232,197,106,.55)";
-          ctx.lineWidth = Math.max(4, 1 / B);
-          ctx.stroke();
-        }
 
         if (n.type === "socket") {
           ctx.beginPath();
@@ -460,6 +459,8 @@
             state.selectedSocket = id;
             state.ringSelected = Object.create(null);
             rebuildRing();
+            // 选中珠宝孔后，圈内天赋默认全部生效（全选）
+            Object.keys(state.ringKeys).forEach(function (k) { state.ringSelected[k] = true; });
           }
           if (opts.onSocketChange) opts.onSocketChange(state.selectedSocket);
         } else if (state.selectedSocket && state.ringKeys[id]) {
