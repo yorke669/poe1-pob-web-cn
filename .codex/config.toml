@@ -1,0 +1,46 @@
+[mcp_servers.playwright]
+command = "mise"
+args = ["run", "playwright:mcp"]
+startup_timeout_sec = 120
+tool_timeout_sec = 120
+required = true
+
+[mcp_servers.playwright.tools.browser_close]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_resize]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_navigate]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_mouse_click_xy]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_mouse_wheel]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_mouse_drag_xy]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_evaluate]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_press_key]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_click]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_mouse_move_xy]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_mouse_down]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_mouse_up]
+approval_mode = "approve"
+
+[mcp_servers.sentry]
+url = "https://mcp.sentry.dev/mcp"
+auth = "oauth"

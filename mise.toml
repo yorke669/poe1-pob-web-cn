@@ -1,0 +1,220 @@
+[tools]
+deno = "2.9.3"
+"github:Pinggy-io/cli-js" = { version = "0.5.1", exe = "pinggy" }
+emsdk = "6.0.6"
+cmake = "4.3.3"
+ninja = "1.13.2"
+
+hk = "1.54.1"
+pkl = "0.31.0"
+actionlint = "1.7.12"
+shellcheck = "0.11.0"
+sentry-cli = "3.6.2"
+"aqua:auth0/auth0-cli" = "1.32.0"
+
+[settings]
+lockfile = true
+
+[tasks.install]
+run = "deno ci"
+sources = [
+  "deno.json",
+  "deno.lock",
+  "packages/*/deno.json"
+]
+outputs = { auto = true }
+
+[tasks.setup]
+description = "Set up dependencies, submodules, and repository hooks"
+run = "deno task repo setup"
+
+[tasks."test:driver"]
+description = "Run focused driver behavior tests"
+run = "deno task --filter pob-driver test"
+depends = ["driver:build"]
+
+[tasks."test:integration:zenfs"]
+description = "Run browser and Wrangler integration tests for ZenFS backends"
+run = [
+  "deno task --filter pob-driver test:integration:zenfs:kv",
+  "deno task --filter pob-driver test:integration:zenfs:browser",
+]
+depends = ["visual:setup"]
+
+[tasks."test:web"]
+description = "Run focused web behavior tests"
+run = "deno task --filter pob-web test"
+depends = ["install"]
+
+[tasks."test:upstream-sync"]
+description = "Check and test the upstream sync tooling"
+run = "deno task repo test-tool upstream-sync"
+
+[tasks."test:sentry-upload"]
+description = "Check and test the Sentry debug information upload tooling"
+run = "deno task repo test-tool sentry-upload"
+
+[tasks."test:driver:debuginfo"]
+description = "Verify production Wasm debug information generation"
+run = "deno task repo driver-debug-info"
+depends = ["driver:build"]
+
+[tasks."upstream-sync:collect"]
+description = "Discover, sync, and test new releases for one game"
+usage = """
+flag "--game <game>" {
+  choices "poe1" "poe2" "le"
+}
+flag "--version-file <path>" { default "version.json" }
+flag "--output <path>"
+flag "--dry-run"
+"""
+run = 'deno run --allow-env --allow-net=api.github.com --allow-read --allow-write --allow-run=mise tools/upstream-sync/main.ts collect --game "${usage_game?}" --version-file "${usage_version_file?}" --output "${usage_output?}" ${usage_dry_run:+--dry-run}'
+
+[tasks."upstream-sync:merge"]
+description = "Merge matrix compatibility results into version metadata"
+usage = """
+flag "--version-file <path>" { default "version.json" }
+flag "--results-directory <path>"
+flag "--dry-run"
+"""
+run = 'deno run --allow-env --allow-read --allow-write --allow-run=mise tools/upstream-sync/main.ts merge --version-file "${usage_version_file?}" --results-directory "${usage_results_directory?}" ${usage_dry_run:+--dry-run}'
+
+[tasks."test:e2e:driver"]
+description = "Run local driver runtime tests"
+usage = """
+flag "--game <game>" { choices "poe1" "poe2" "le" }
+flag "--version <version>"
+"""
+run = 'deno task repo test-e2e-driver ${usage_game:+--game "$usage_game"} ${usage_version:+--version "$usage_version"}'
+depends = ["driver:build"]
+
+[tasks."test:e2e:web"]
+description = "Run the local web-to-driver critical-path test"
+run = "deno task repo test-e2e-web"
+depends = ["driver:build"]
+
+[tasks."test:e2e:driver:bc7"]
+description = "Run the BC7 CPU fallback browser test"
+run = "deno task repo test-e2e-driver-bc7"
+depends = ["driver:build"]
+
+[tasks."test:sentry:live"]
+description = "Verify Chromium and Firefox Wasm symbolication through Sentry"
+run = "deno task repo sentry-live"
+depends = ["driver:build"]
+
+[tasks."benchmark:setup"]
+description = "Install the Chromium and Firefox browsers used for driver benchmarks"
+run = "deno task playwright install chromium firefox"
+depends = ["install"]
+
+[tasks."benchmark:driver"]
+description = "Benchmark a release driver build in Chromium and Firefox"
+run = "deno task repo benchmark-driver"
+depends = ["benchmark:setup"]
+
+[tasks.check]
+description = "Run generated-file and static checks"
+usage = 'arg "[files]" var=#true'
+run = 'if [ -n "$usage_files" ]; then eval "deno task repo check $usage_files"; else deno task repo check; fi'
+depends = ["install"]
+
+[tasks.fix]
+description = "Fix formatting and lint issues"
+usage = 'arg "[files]" var=#true'
+run = 'if [ -n "$usage_files" ]; then eval "deno task repo fix $usage_files"; else deno task repo fix; fi'
+depends = ["install"]
+
+[tasks.test]
+description = "Run all reproducible checks, tests, and production builds"
+run = "deno task repo test"
+depends = ["install"]
+
+[tasks."playwright:mcp"]
+description = "Start Playwright MCP with coordinate-based Vision Mode"
+depends = ["install"]
+run = "deno task repo playwright-mcp"
+
+[tasks."visual:setup"]
+description = "Install the browsers used for E2E and visual verification"
+depends = ["install"]
+run = "deno task playwright install chromium firefox webkit"
+
+[tasks.pack]
+description = "Pack the distribution from upstream repository"
+usage = """
+flag "--game <game>" { choices "poe1" "poe2" "le" }
+flag "--tag <tag>"
+"""
+run = 'deno task repo pack --game "${usage_game?}" --tag "${usage_tag?}"'
+depends = ["install"]
+
+[tasks."driver:build"]
+description = "Build the driver package"
+run = "deno task repo driver-build"
+sources = [
+  "mise.toml",
+  "mise.lock",
+  "packages/driver/*.lua",
+  "packages/driver/CMakeLists.txt",
+  "packages/driver/*.cmake",
+  "packages/driver/*.json",
+  "packages/driver/src/c/**/*",
+  "packages/driver/test/c/**/*",
+  "vendor/lua/**/*",
+  "vendor/luautf8/**/*",
+]
+outputs = [
+  "packages/driver/build/**/*",
+  "packages/driver/dist/**/*",
+]
+depends = ["install"]
+
+[tasks."driver:dev"]
+description = "Start dev server for driver"
+usage = """
+flag "--game <game>" {
+  help "Game to run"
+  choices "poe1" "poe2" "le"
+}
+flag "--version <version>" help="Game version to run"
+flag "--build <build>" {
+  help "Build type to run"
+  choices "release" "debug"
+  default "release"
+}
+flag "--pob-cool-asset" help="Use https://asset.pob.cool asset instead of local packed assets"
+"""
+run = 'deno task repo driver-dev ${usage_game:+--game "$usage_game"} ${usage_version:+--version "$usage_version"} --build "${usage_build?}" ${usage_pob_cool_asset:+--pob-cool-asset}'
+depends = ["driver:build"]
+
+[tasks."web:build"]
+description = "Build the web package"
+run = "deno task --filter pob-web build"
+depends = ["driver:build"]
+
+[tasks."sentry:upload"]
+description = "Upload the current production source maps and Wasm debug information to Sentry"
+run = "deno run --allow-env=SENTRY_AUTH_TOKEN,SENTRY_RELEASE --allow-read --allow-run=sentry-cli tools/sentry-upload/main.ts"
+
+[tasks."web:deploy"]
+description = "Build, upload source maps, and deploy the web package"
+run = "deno task repo web-deploy"
+depends = ["install", "driver:build"]
+
+[tasks."web:dev"]
+description = "Start dev server for web"
+usage = """
+flag "--pob-cool-asset" help="Use https://asset.pob.cool asset instead of local packed assets"
+"""
+run = 'deno task repo web-dev ${usage_pob_cool_asset:+--pob-cool-asset}'
+depends = ["driver:build"]
+
+[tasks."web:dev:public"]
+description = "Expose the web development server through a temporary Free Pinggy URL"
+usage = """
+flag "--pob-cool-asset" help="Use https://asset.pob.cool asset instead of local packed assets"
+"""
+run = 'deno task repo web-dev-public ${usage_pob_cool_asset:+--pob-cool-asset}'
+depends = ["driver:build"]

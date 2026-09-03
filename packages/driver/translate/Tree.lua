@@ -1,0 +1,4 @@
+return {
+    ["Allocates"] = "配置",
+    ["Replica"] = "仿品",
+}

@@ -1,0 +1,39 @@
+{
+  "name": "pob-driver",
+  "version": "0.34.0",
+  "exports": {
+    "./driver": "./src/js/driver.ts",
+    "./error": "./src/js/error.ts",
+    "./renderer": "./src/js/renderer/index.ts"
+  },
+  "publish": false,
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": [
+      "deno.ns",
+      "dom",
+      "dom.iterable",
+      "es2022"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": [
+      "./src/js/vite-env.d.ts",
+      "@types/emscripten"
+    ]
+  },
+  "tasks": {
+    "build": "deno task build:debug && deno task build:release",
+    "build:debug": "cmake -E rm -rf dist/debug && emcmake cmake --fresh -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Debug && EMCC_FORCE_STDLIBS=libc emmake ninja -C build",
+    "build:release": "cmake -E rm -rf dist/release && emcmake cmake --fresh -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Release && EMCC_FORCE_STDLIBS=libc emmake ninja -C build",
+    "dev": "vite",
+    "preview": "vite preview",
+    "test": "deno test --no-check --allow-env --allow-read=../../version.json,../../node_modules,build,src,test test/unit/*.test.ts && ctest --test-dir build --output-on-failure",
+    "test:e2e": "playwright test",
+    "test:integration:zenfs:browser": "playwright test --config playwright.zenfs.config.mts",
+    "test:integration:zenfs:kv": "deno test --no-check --allow-env --allow-net=127.0.0.1 --allow-read=../.. --allow-write=/tmp --allow-run test/integration/cloudflare-kv.test.ts",
+    "test:e2e:bc7": "playwright test bc7-fallback.spec.mts --project chromium",
+    "test:e2e:serve": "vite --mode test --host 127.0.0.1",
+    "test:performance": "playwright test --config playwright.performance.config.mts"
+  }
+}

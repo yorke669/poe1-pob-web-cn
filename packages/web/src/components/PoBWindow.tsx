@@ -1,0 +1,413 @@
+import { useAuth0 } from "@auth0/auth0-react";
+import { Driver } from "pob-driver/driver";
+import type { RenderStats } from "pob-driver/renderer";
+import { type Game, gameData } from "pob-game";
+import { useEffect, useRef, useState } from "react";
+import * as use from "react-use";
+import {
+  collectDiagnosticReport,
+  createDiagnosticReport,
+  type DiagnosticReport,
+  type ErrorPhase,
+} from "../lib/error-report.ts";
+import { confirmAndLogout } from "../lib/auth.ts";
+import { log, tag } from "../lib/logger.ts";
+import {
+  authenticateWithPoe,
+  authorizePoeWithRedirect,
+  browserDirectFetchHeaders,
+  corsFetchPolicy,
+  createPoeOAuthBridge,
+} from "../lib/poe-oauth.ts";
+import { loadPobbBuildViaProxy, pobbJsonUrl } from "../lib/pobb.ts";
+import { bindSentryRuntime, registerSentryWorker, sentryDiagnosticSink, tracePobOperation } from "../lib/sentry.ts";
+import { RuntimeDiagnostics } from "../lib/runtime-diagnostics.ts";
+import ErrorDialog from "./ErrorDialog.tsx";
+
+const { useHash } = use;
+type FetchResult = Awaited<ReturnType<ConstructorParameters<typeof Driver>[2]["onFetch"]>>;
+
+export default function PoBWindow(props: {
+  game: Game;
+  version: string;
+  onFrame: (at: number, time: number, stats?: RenderStats) => void;
+  onTitleChange: (title: string) => void;
+  onLayerVisibilityCallbackReady?: (callback: (layer: number, sublayer: number, visible: boolean) => void) => void;
+  toolbarComponent?: React.ComponentType<{ position: "top" | "bottom" | "left" | "right"; isLandscape: boolean }>;
+  onDriverReady?: (driver: Driver | null) => void;
+}) {
+  const auth0 = useAuth0();
+  const auth0Ref = useRef(auth0);
+  const skipCloudTokenUpdateRef = useRef(false);
+  auth0Ref.current = auth0;
+
+  const container = useRef<HTMLDivElement>(null);
+  const driverRef = useRef<Driver | null>(null);
+  const onFrameRef = useRef(props.onFrame);
+  const onTitleChangeRef = useRef(props.onTitleChange);
+  const onLayerVisibilityCallbackReadyRef = useRef(props.onLayerVisibilityCallbackReady);
+  const onDriverReadyRef = useRef(props.onDriverReady);
+  const effectInputsRef = useRef<{ game: Game; version: string; authenticated: boolean; buildCode: boolean }>();
+
+  onFrameRef.current = props.onFrame;
+  onTitleChangeRef.current = props.onTitleChange;
+  onLayerVisibilityCallbackReadyRef.current = props.onLayerVisibilityCallbackReady;
+  onDriverReadyRef.current = props.onDriverReady;
+
+  const [token, setToken] = useState<string>();
+  useEffect(() => {
+    async function getToken() {
+      if (auth0.isAuthenticated) {
+        if (skipCloudTokenUpdateRef.current) {
+          skipCloudTokenUpdateRef.current = false;
+          return;
+        }
+        const t = await auth0.getAccessTokenSilently();
+        setToken(t);
+      }
+    }
+    void getToken().catch((error) => log.warn(tag.pob, "Cloud token refresh failed", error));
+  }, [auth0.getAccessTokenSilently, auth0.isAuthenticated]);
+
+  const [hash, _setHash] = useHash();
+  const [buildCode, setBuildCode] = useState("");
+  useEffect(() => {
+    if (hash.startsWith("#build=")) {
+      const code = hash.slice("#build=".length);
+      setBuildCode(code);
+    } else if (hash.startsWith("#=")) {
+      const code = hash.slice("#=".length);
+      setBuildCode(code);
+    }
+  }, [hash]);
+
+  const [loading, setLoading] = useState(true);
+  const [errorReport, setErrorReport] = useState<DiagnosticReport>();
+  const [showErrorDialog, setShowErrorDialog] = useState(true);
+
+  useEffect(() => {
+    if (driverRef.current && props.toolbarComponent) {
+      driverRef.current.setExternalToolbarComponent(props.toolbarComponent);
+    }
+  }, [props.toolbarComponent]);
+
+  useEffect(() => {
+    const diagnostics = new RuntimeDiagnostics(props.game, props.version);
+    const unbindSentryRuntime = bindSentryRuntime(diagnostics);
+    let active = true;
+    const effectInputs = {
+      game: props.game,
+      version: props.version,
+      authenticated: token !== undefined,
+      buildCode: buildCode !== "",
+    };
+    const previousInputs = effectInputsRef.current;
+    diagnostics.record("page", "effect-run", {
+      changed: previousInputs
+        ? (Object.keys(effectInputs) as (keyof typeof effectInputs)[]).filter(
+          (key) => previousInputs[key] !== effectInputs[key],
+        )
+        : ["initial"],
+    });
+    effectInputsRef.current = effectInputs;
+    const onPageShow = (event: PageTransitionEvent) => diagnostics.pageEvent("pageshow", event.persisted);
+    const onPageHide = (event: PageTransitionEvent) => diagnostics.pageEvent("pagehide", event.persisted);
+    const onVisibilityChange = () => diagnostics.pageEvent("visibilitychange");
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("pagehide", onPageHide);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    onDriverReadyRef.current?.(null);
+    setErrorReport(undefined);
+    const assetPrefix = `${__ASSET_PREFIX__}/games/${props.game}/versions/${props.version}`;
+    const poeOAuthBridge = createPoeOAuthBridge(
+      () => auth0Ref.current,
+      async (forceAuthorization, timeoutMs) => {
+        const skipCloudTokenUpdate = !auth0Ref.current.isAuthenticated;
+        skipCloudTokenUpdateRef.current = skipCloudTokenUpdate;
+        try {
+          diagnostics.record("oauth", "authorize", { game: props.game, pobVersion: props.version });
+          const startedAt = performance.now();
+          const token = await tracePobOperation(
+            "pob.oauth.authorize",
+            { game: props.game, pobVersion: props.version },
+            () =>
+              authenticateWithPoe(
+                auth0Ref.current,
+                forceAuthorization,
+                (force) => authorizePoeWithRedirect(force, timeoutMs),
+              ),
+          );
+          diagnostics.record("oauth", "authorized", {
+            game: props.game,
+            pobVersion: props.version,
+            durationMs: performance.now() - startedAt,
+          });
+          return token;
+        } catch (error) {
+          diagnostics.record("oauth", "error", {
+            game: props.game,
+            pobVersion: props.version,
+            errorName: error instanceof Error && error.name ? error.name : "Error",
+          }, "error");
+          if (skipCloudTokenUpdate) skipCloudTokenUpdateRef.current = false;
+          throw error;
+        }
+      },
+    );
+    log.debug(tag.pob, "loading assets from", assetPrefix);
+
+    const showError = (error: unknown, phase: ErrorPhase) => {
+      diagnostics.record("managed", "error", {
+        phase,
+        errorName: error instanceof Error && error.name ? error.name : "Error",
+        ...(typeof DOMException !== "undefined" && error instanceof DOMException ? { errorCode: error.code } : {}),
+      }, "error");
+      const report = createDiagnosticReport({
+        error,
+        phase,
+        game: props.game,
+        pobVersion: props.version,
+        runId: diagnostics.runId,
+        lifecycle: diagnostics.snapshot(),
+      });
+      collectDiagnosticReport(report, sentryDiagnosticSink);
+      setErrorReport(report);
+      setShowErrorDialog(true);
+    };
+
+    const _driver = new Driver(
+      "release",
+      assetPrefix,
+      {
+        onError: (error) => {
+          showError(error, "driver-runtime");
+        },
+        onFrame: (at, time, stats) => onFrameRef.current(at, time, stats),
+        onFetch: async (url, headers, body) => {
+          const oauthResponse = await poeOAuthBridge.exchange(url, body);
+          if (oauthResponse) {
+            return {
+              body: oauthResponse,
+              error: undefined,
+              headers: { "content-type": "application/json" },
+              status: 200,
+            };
+          }
+
+          if (!body && pobbJsonUrl(url)) {
+            try {
+              const build = await loadPobbBuildViaProxy(url, headers);
+              if (build) {
+                return {
+                  body: build.content,
+                  error: undefined,
+                  headers: { "content-type": "text/plain" },
+                  status: 200,
+                };
+              }
+            } catch (error) {
+              return {
+                body: "",
+                error: error instanceof Error ? error.message : String(error),
+                headers: {},
+                status: undefined,
+              };
+            }
+          }
+
+          let rep: FetchResult | undefined;
+
+          const corsPolicy = corsFetchPolicy(url, window.location.origin);
+          if (corsPolicy) {
+            try {
+              const r = await fetch(url, {
+                method: body ? "POST" : "GET",
+                body,
+                headers: browserDirectFetchHeaders(headers),
+              });
+              const directResult = {
+                body: await r.text(),
+                error: undefined,
+                headers: Object.fromEntries(r.headers.entries()),
+                status: r.status,
+              };
+              if (corsPolicy === "direct" || r.ok) {
+                rep = directResult;
+                log.debug(tag.pob, "CORS fetch complete", url, { status: rep.status });
+              } else {
+                log.warn(tag.pob, "CORS fetch failed, falling back to proxy", url, { status: r.status });
+              }
+            } catch (e) {
+              log.warn(tag.pob, "CORS fetch error", e);
+              if (corsPolicy === "direct") {
+                rep = {
+                  body: "",
+                  error: e instanceof Error ? e.message : String(e),
+                  headers: {},
+                  status: undefined,
+                };
+              }
+            }
+          }
+
+          if (!rep) {
+            const r = await fetch("/api/fetch", {
+              method: "POST",
+              body: JSON.stringify({ url, headers, body }),
+            });
+            rep = (await r.json()) as FetchResult;
+          }
+
+          return rep;
+        },
+        onOAuthAuthorize: (authorizationUrl, timeoutMs) => poeOAuthBridge.authorize(authorizationUrl, timeoutMs),
+        onOAuthLogout: () => {
+          confirmAndLogout(auth0Ref.current);
+        },
+        onTitleChange: (title) => onTitleChangeRef.current(title),
+      },
+      {
+        onWorkerCreated: registerSentryWorker,
+        onDiagnostic: diagnostics.driver,
+      },
+    );
+    diagnostics.record("driver", "constructed");
+
+    driverRef.current = _driver;
+
+    (async () => {
+      let phase: ErrorPhase = "driver-start";
+      try {
+        await tracePobOperation(
+          "pob.driver.start",
+          { game: props.game, pobVersion: props.version },
+          () =>
+            _driver.start({
+              userDirectory: gameData[props.game].userDirectory,
+              settingsRootElement: gameData[props.game].settingsRootElement,
+              cloudflareKvPrefix: "/api/kv",
+              cloudflareKvAccessToken: token,
+              cloudflareKvUserNamespace: gameData[props.game].cloudflareKvNamespace,
+            }),
+        );
+        if (!active) return;
+        diagnostics.record("driver", "started");
+        log.debug(tag.pob, "started", container.current);
+        if (buildCode) {
+          phase = "build-load";
+          log.info(tag.pob, "loading build");
+          diagnostics.record("build", "load", { game: props.game, pobVersion: props.version });
+          const buildStartedAt = performance.now();
+          try {
+            await tracePobOperation(
+              "pob.build.load",
+              { game: props.game, pobVersion: props.version },
+              () => _driver.loadBuildFromCode(buildCode),
+            );
+            diagnostics.record("build", "loaded", {
+              game: props.game,
+              pobVersion: props.version,
+              durationMs: performance.now() - buildStartedAt,
+            });
+          } catch (error) {
+            diagnostics.record("build", "error", {
+              game: props.game,
+              pobVersion: props.version,
+              durationMs: performance.now() - buildStartedAt,
+              errorName: error instanceof Error && error.name ? error.name : "Error",
+            }, "error");
+            throw error;
+          }
+          if (!active) return;
+        }
+        phase = "renderer-attach";
+        if (container.current) {
+          diagnostics.record("renderer", "attach", { game: props.game, pobVersion: props.version });
+          const rendererStartedAt = performance.now();
+          try {
+            await tracePobOperation(
+              "pob.renderer.attach",
+              { game: props.game, pobVersion: props.version },
+              () => _driver.attachToDOM(container.current!),
+            );
+            diagnostics.record("renderer", "attached", {
+              game: props.game,
+              pobVersion: props.version,
+              durationMs: performance.now() - rendererStartedAt,
+            });
+          } catch (error) {
+            diagnostics.record("renderer", "error", {
+              game: props.game,
+              pobVersion: props.version,
+              durationMs: performance.now() - rendererStartedAt,
+              errorName: error instanceof Error && error.name ? error.name : "Error",
+            }, "error");
+            throw error;
+          }
+        }
+        if (!active) return;
+        diagnostics.record("driver", "renderer-attached");
+
+        if (props.toolbarComponent) {
+          _driver.setExternalToolbarComponent(props.toolbarComponent);
+        }
+
+        onLayerVisibilityCallbackReadyRef.current?.((layer: number, sublayer: number, visible: boolean) => {
+          _driver.setLayerVisible(layer, sublayer, visible);
+        });
+
+        onDriverReadyRef.current?.(_driver);
+
+        setLoading(false);
+        diagnostics.record("driver", "ready");
+      } catch (e) {
+        if (!active) return;
+        showError(e, phase);
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+      diagnostics.complete("react-effect-cleanup");
+      unbindSentryRuntime();
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("pagehide", onPageHide);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      _driver.detachFromDOM();
+      _driver.destory();
+      driverRef.current = null;
+      onDriverReadyRef.current?.(null);
+      setLoading(true);
+    };
+  }, [props.game, props.version, token, buildCode]);
+
+  if (errorReport) {
+    return (
+      <>
+        {showErrorDialog && (
+          <ErrorDialog
+            report={errorReport}
+            onReload={() => window.location.reload()}
+            onClose={() => setShowErrorDialog(false)}
+          />
+        )}
+        <div
+          ref={container}
+          className={`w-full h-full border border-neutral focus:outline-none bg-black ${
+            loading ? "rounded-none skeleton" : ""
+          }`}
+        />
+      </>
+    );
+  }
+
+  return (
+    <div
+      ref={container}
+      className={`w-full h-full border border-neutral focus:outline-none bg-black ${
+        loading ? "rounded-none skeleton" : ""
+      }`}
+    />
+  );
+}

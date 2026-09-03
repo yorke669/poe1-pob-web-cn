@@ -1,0 +1,4 @@
+return {
+    ["Chilling Skitterbot"] = "冰冷的飞掠者",
+    ["Shocking Skitterbot"] = "电震的飞掠者",
+}

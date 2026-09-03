@@ -1,0 +1,4 @@
+return {
+    ["See All"] = "查看全部",
+    ["Build link is not provided."] = "构筑链接未被提供。",
+}

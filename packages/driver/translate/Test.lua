@@ -1,0 +1,3 @@
+return {
+    ["Staff: Warstaff"] = "长杖: 战杖",
+}

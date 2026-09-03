@@ -1,0 +1,56 @@
+name: build
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.TOKEN_APP_ID }}
+          private-key: ${{ secrets.TOKEN_PRIVATE_KEY }}
+
+      - uses: googleapis/release-please-action@v5
+        id: release-please
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: .github/release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v5
+        with:
+          key: ${{ runner.os }}-deno-${{ hashFiles('deno.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deno-
+          path: ~/.cache/deno
+
+      - uses: jdx/mise-action@v3
+
+      - name: "Check and build"
+        run: mise run test
+
+      - name: Deploy
+        if: ${{ steps.release-please.outputs.release_created }}
+        run: mise run web:deploy
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_SENTRY_RELEASE: pob-web@${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_RELEASE: pob-web@${{ github.sha }}

@@ -1,0 +1,4 @@
+return {
+    ["Category"] = "类别",
+    ["Select a metric above to generate the power report."] = "选择以下的一项参数以计算强度报告",
+}

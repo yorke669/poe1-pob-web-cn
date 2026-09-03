@@ -1,0 +1,3 @@
+return {
+    ["Honoured Tattoo of the Dove"] = "鸽子荣誉纹身",
+}

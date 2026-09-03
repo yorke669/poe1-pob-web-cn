@@ -1,0 +1,952 @@
+# Changelog
+
+## [0.34.0](https://github.com/atty303/pob-web/compare/v0.33.11...v0.34.0) (2026-08-15)
+
+
+### Features
+
+* **web:** improve Sentry diagnostics ([50c6c7a](https://github.com/atty303/pob-web/commit/50c6c7a77325c8b6c5915c6f764e824aaa51e130))
+
+
+### Bug Fixes
+
+* **driver:** preserve background dispatch state ([141a5cc](https://github.com/atty303/pob-web/commit/141a5cc0f65cd1622c232c7fff909e444bc5be5c))
+* **web:** follow Sentry default data handling ([b0a208b](https://github.com/atty303/pob-web/commit/b0a208b2cd4b63fd36641479981c7aa8389d7a57))
+* **web:** preserve worker error details ([d88000b](https://github.com/atty303/pob-web/commit/d88000b14160129c8f4016edb4961612e870b70c))
+
+## [0.33.11](https://github.com/atty303/pob-web/compare/v0.33.10...v0.33.11) (2026-08-15)
+
+
+### Bug Fixes
+
+* **driver:** handle missing keyboard event keys ([3021953](https://github.com/atty303/pob-web/commit/302195396de238278f1f476f0f2d70663fd16a25))
+* **driver:** handle missing keyboard event keys ([#215](https://github.com/atty303/pob-web/issues/215)) ([a25bfb1](https://github.com/atty303/pob-web/commit/a25bfb1501b6ad32adfb46f1bb136adfb9fcb82c))
+* **driver:** recover Last Epoch settings ([eb30480](https://github.com/atty303/pob-web/commit/eb30480cf8e53525f605d55766696a46af7427cc))
+* **driver:** recover Last Epoch settings ([#214](https://github.com/atty303/pob-web/issues/214)) ([f0f8aa6](https://github.com/atty303/pob-web/commit/f0f8aa6d1b09af7788bbe9d90107e52600ae59ba))
+
+## [0.33.10](https://github.com/atty303/pob-web/compare/v0.33.9...v0.33.10) (2026-08-15)
+
+
+### Bug Fixes
+
+* **driver:** defer overlay cleanup during React render ([4ea4f8a](https://github.com/atty303/pob-web/commit/4ea4f8a7a74b32f5908d0de8b7841473d8002448))
+* **web:** import POBb builds in Firefox ([#212](https://github.com/atty303/pob-web/issues/212)) ([d3658d9](https://github.com/atty303/pob-web/commit/d3658d9c9b745d3c814dd18e746df3d39ad439b0))
+* **web:** import POBb links in Firefox ([6fd39c1](https://github.com/atty303/pob-web/commit/6fd39c1ec72d868866d27b9409dcf469cc37a082))
+
+## [0.33.9](https://github.com/atty303/pob-web/compare/v0.33.8...v0.33.9) (2026-08-15)
+
+
+### Bug Fixes
+
+* **ci:** retry transient Sentry uploads ([c632a28](https://github.com/atty303/pob-web/commit/c632a28510fb0c8ab77b49c84f6540e633076276))
+* **ci:** retry transient Sentry uploads ([#210](https://github.com/atty303/pob-web/issues/210)) ([8391245](https://github.com/atty303/pob-web/commit/839124550ae483f3663591551160ebcc5572d64d))
+
+## [0.33.8](https://github.com/atty303/pob-web/compare/v0.33.7...v0.33.8) (2026-08-15)
+
+
+### Bug Fixes
+
+* **web:** avoid hydration for non-root routes ([#208](https://github.com/atty303/pob-web/issues/208)) ([261f794](https://github.com/atty303/pob-web/commit/261f7947ebc26239fc3d372ccaf91721aa768652))
+* **web:** render game routes without hydration ([4028d62](https://github.com/atty303/pob-web/commit/4028d625b31d603ce81ef26c8b461441a4e51e4e))
+* **web:** render non-root routes on the client ([62c642e](https://github.com/atty303/pob-web/commit/62c642e72fa4b2b44c3df4dc64176273fbba6ff2))
+
+## [0.33.7](https://github.com/atty303/pob-web/compare/v0.33.6...v0.33.7) (2026-08-15)
+
+
+### Bug Fixes
+
+* **web:** import current POBb.in build links ([17683d5](https://github.com/atty303/pob-web/commit/17683d55aee8283ee1f4c5f1cded618896ab9284))
+* **web:** import current POBb.in build links ([#206](https://github.com/atty303/pob-web/issues/206)) ([8d468e3](https://github.com/atty303/pob-web/commit/8d468e3d0ee5a28a8f9fdb318d3f02161e4a6384))
+
+## [0.33.6](https://github.com/atty303/pob-web/compare/v0.33.5...v0.33.6) (2026-08-14)
+
+
+### Bug Fixes
+
+* **driver:** classify browser environment failures ([bda4115](https://github.com/atty303/pob-web/commit/bda41156e759839020a06ea6b63a08d482108e1e))
+* **driver:** classify browser environment failures ([#203](https://github.com/atty303/pob-web/issues/203)) ([ecd2d36](https://github.com/atty303/pob-web/commit/ecd2d36361f5ceb540b3011c40b6bd8666ae3a6e))
+* **driver:** handle unsupported browser capabilities ([04d8328](https://github.com/atty303/pob-web/commit/04d83285ca921a856f896ee093971b3118e3d9f2))
+
+## [0.33.5](https://github.com/atty303/pob-web/compare/v0.33.4...v0.33.5) (2026-08-14)
+
+
+### Bug Fixes
+
+* **driver:** truncate OPFS files on shorter writes ([cdef566](https://github.com/atty303/pob-web/commit/cdef566d520d65877223832242ea4dc764e5d1be))
+* **driver:** truncate OPFS files on shorter writes ([#201](https://github.com/atty303/pob-web/issues/201)) ([24e4e35](https://github.com/atty303/pob-web/commit/24e4e35f5f302c0180c203c44ddceb8b465be852))
+
+## [0.33.4](https://github.com/atty303/pob-web/compare/v0.33.3...v0.33.4) (2026-08-14)
+
+
+### Bug Fixes
+
+* **driver:** hide zero-byte cloud builds ([0fd43df](https://github.com/atty303/pob-web/commit/0fd43dfbb908761956cd1e7e24e0a8cc07c8055e))
+* **driver:** hide zero-byte cloud builds ([#199](https://github.com/atty303/pob-web/issues/199)) ([61de18c](https://github.com/atty303/pob-web/commit/61de18c88828e4eaa6d047c4725a7ebc09390f03))
+
+## [0.33.3](https://github.com/atty303/pob-web/compare/v0.33.2...v0.33.3) (2026-08-14)
+
+
+### Bug Fixes
+
+* **driver:** distinguish legacy cloud paths ([1cd4576](https://github.com/atty303/pob-web/commit/1cd4576908d945023289dc488c5803e3cf83c203))
+* **driver:** distinguish legacy cloud paths ([#197](https://github.com/atty303/pob-web/issues/197)) ([49938bb](https://github.com/atty303/pob-web/commit/49938bb1e7dde1529db9e096b7b6f3a8b6329144))
+
+## [0.33.2](https://github.com/atty303/pob-web/compare/v0.33.1...v0.33.2) (2026-08-14)
+
+
+### Bug Fixes
+
+* **driver:** ignore corrupt legacy cloud files ([568b1de](https://github.com/atty303/pob-web/commit/568b1debf4180a7cca69cc6f94fbb2b971e8fe03))
+* **driver:** tolerate legacy Cloudflare KV data ([#195](https://github.com/atty303/pob-web/issues/195)) ([cd034b7](https://github.com/atty303/pob-web/commit/cd034b7b91ca436c8f213637d1d1d6311b6f3785))
+* **web:** list all legacy cloud builds ([0b063a2](https://github.com/atty303/pob-web/commit/0b063a2caa494e77e68d3968692f4a151f545add))
+* **web:** paginate cloud build listings ([7a7184f](https://github.com/atty303/pob-web/commit/7a7184f2aecfa4ced2aed03cb65fade3dd9e2aea))
+* **web:** paginate cloud build listings ([43085f1](https://github.com/atty303/pob-web/commit/43085f1da04d3dbc5e012779a1938ced32c0a591))
+
+## [0.33.1](https://github.com/atty303/pob-web/compare/v0.33.0...v0.33.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* **driver:** await cloud build writes ([9092c18](https://github.com/atty303/pob-web/commit/9092c1855c177884091455e3b796926a94bc4b44))
+* **driver:** invalidate stale Vite dependencies ([6aa57a0](https://github.com/atty303/pob-web/commit/6aa57a03ed78aca9c23613dfc7b0c735635e94af))
+* **driver:** keep cloud builds writable ([2d32895](https://github.com/atty303/pob-web/commit/2d3289517a8c3d1b06b2703aa58a1a7061d6cbf6))
+* **driver:** preserve cloud directory metadata ([26a428d](https://github.com/atty303/pob-web/commit/26a428dc5bc4cf6033f024ef545b6c87669c1ffd))
+* **driver:** preserve Cloudflare KV file state ([13b2c7a](https://github.com/atty303/pob-web/commit/13b2c7aba7f9bd7e893fb0dbca2bc091fe7bcb45))
+* **driver:** recover stale cloud file sizes ([bc7a58b](https://github.com/atty303/pob-web/commit/bc7a58bc8185b64224d11fb0d6943347ccebe885))
+* **driver:** restore cloud entries after reload ([4d0ef38](https://github.com/atty303/pob-web/commit/4d0ef387c2585ae1ff4b483e08b13826ccf915a5))
+* **driver:** restore persistent build listings ([8b5d28e](https://github.com/atty303/pob-web/commit/8b5d28ef68de23b72d8c74919f12e1823bbec93d))
+* **driver:** restore persistent build listings ([#192](https://github.com/atty303/pob-web/issues/192)) ([94787c8](https://github.com/atty303/pob-web/commit/94787c87395a7d1fd7edc35911ac4cd7bef35d53))
+
+## [0.33.0](https://github.com/atty303/pob-web/compare/v0.32.2...v0.33.0) (2026-08-13)
+
+
+### Features
+
+* **dev:** add remote runtime diagnostics ([5672d62](https://github.com/atty303/pob-web/commit/5672d6282e6799731e8267c3117315e7eed70f51))
+* **dev:** add rendering dimension override ([0095365](https://github.com/atty303/pob-web/commit/00953652bbc3b79820ef421d3a6f1360c2760748))
+
+
+### Bug Fixes
+
+* **driver:** bound Safari WebGL instance batches ([#190](https://github.com/atty303/pob-web/issues/190)) ([1be42e2](https://github.com/atty303/pob-web/commit/1be42e240bb93c39efdd35770acb7348b9a48d04))
+* **driver:** bound WebGL instance batches ([06462d0](https://github.com/atty303/pob-web/commit/06462d01d8482e5f396acc468ee27a78583961aa))
+
+
+### Performance Improvements
+
+* **dev:** prebundle web dependencies ([83ec3d7](https://github.com/atty303/pob-web/commit/83ec3d79d86964efd44f42b29260bb38e5de94ee))
+
+## [0.32.2](https://github.com/atty303/pob-web/compare/v0.32.1...v0.32.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* **driver:** normalize pointer state updates ([529457d](https://github.com/atty303/pob-web/commit/529457dd5a9e0845f6047563708cf20a8c35fa03))
+* **driver:** normalize pointer state updates ([#188](https://github.com/atty303/pob-web/issues/188)) ([b28cb71](https://github.com/atty303/pob-web/commit/b28cb7110f3621790593e8171b06440fc1837c71))
+
+## [0.32.1](https://github.com/atty303/pob-web/compare/v0.32.0...v0.32.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **driver:** cap HiDPI canvas backing size ([139d71e](https://github.com/atty303/pob-web/commit/139d71ec13dde9acb19a314401146a76c8b2db2c))
+* **driver:** cap HiDPI canvas backing size ([#186](https://github.com/atty303/pob-web/issues/186)) ([f46bbe7](https://github.com/atty303/pob-web/commit/f46bbe7713ac284cafd13c420244d8d09318ee9f))
+
+## [0.32.0](https://github.com/atty303/pob-web/compare/v0.31.0...v0.32.0) (2026-08-13)
+
+
+### Features
+
+* **agent:** add explicit SimpleGraphic sync skill ([bceb978](https://github.com/atty303/pob-web/commit/bceb9787e4406ac749f0de91cd3bf8c63315feb4))
+* **driver:** add BC7 CPU decode for legacy GPUs ([#183](https://github.com/atty303/pob-web/issues/183)) ([0b9537c](https://github.com/atty303/pob-web/commit/0b9537c217edf63848c35dc14d8e97ab7419f736)), closes [#109](https://github.com/atty303/pob-web/issues/109)
+* **driver:** decode BC7 textures without BPTC ([7f2eac7](https://github.com/atty303/pob-web/commit/7f2eac77f0268d841c1b3b1ba16f52fd7c0480a2))
+* **driver:** support HiDPI rendering ([dbce5f6](https://github.com/atty303/pob-web/commit/dbce5f6bbe09791aee5c5a422ad17e9d78245a01))
+* **driver:** support upstream-compatible HiDPI rendering ([#185](https://github.com/atty303/pob-web/issues/185)) ([4ae8858](https://github.com/atty303/pob-web/commit/4ae8858b1426a5f8ba8983082a4539b90718a963)), closes [#66](https://github.com/atty303/pob-web/issues/66)
+
+
+### Bug Fixes
+
+* **driver:** align cursor with DPI override ([dfe542e](https://github.com/atty303/pob-web/commit/dfe542eb06a656e2195c90d040c82200df691568))
+* **driver:** synchronize SimpleGraphic through 3b1a346 ([82ab157](https://github.com/atty303/pob-web/commit/82ab15763999f8fe63deb358d56a374e0d1be732))
+
+## [0.31.0](https://github.com/atty303/pob-web/compare/v0.30.1...v0.31.0) (2026-08-12)
+
+
+### Features
+
+* **driver:** allow WebGPU selection by URL ([0d020c3](https://github.com/atty303/pob-web/commit/0d020c33417f9f68e9bbfb701cec0bf3dd141346))
+* **driver:** show backend in performance overlay ([dfb875a](https://github.com/atty303/pob-web/commit/dfb875a131ba303f158a0e46854ce29f272689fc))
+* **web:** persist renderer preferences ([c32c9a7](https://github.com/atty303/pob-web/commit/c32c9a775d0793c3100c3f805737428f8ed0aa59))
+
+
+### Bug Fixes
+
+* **driver:** restore text vertical alignment ([d314a76](https://github.com/atty303/pob-web/commit/d314a76cd13689ae65881069194b04e4d2116030))
+* **driver:** return UTF-8 cursor offsets ([176917b](https://github.com/atty303/pob-web/commit/176917ba6045b891e81fab71e41eec77132df647)), closes [#97](https://github.com/atty303/pob-web/issues/97)
+* **driver:** serialize virtual clipboard actions ([d0889b2](https://github.com/atty303/pob-web/commit/d0889b21826d95d6a80b90f9534a7b328f48d4a6))
+* **upstream-sync:** retry compatibility E2E ([b9e9e39](https://github.com/atty303/pob-web/commit/b9e9e392b744340363a576b5c78ea697e854ee34))
+
+
+### Performance Improvements
+
+* **driver:** compile draw commands directly ([ba08710](https://github.com/atty303/pob-web/commit/ba08710b44248d286cc9d93b88d9b7e9526236af))
+* **driver:** compile draw commands directly ([#180](https://github.com/atty303/pob-web/issues/180)) ([f9a558e](https://github.com/atty303/pob-web/commit/f9a558e46d3b90636489f31be01a579a4bf23f3d))
+* **driver:** instance quad rendering ([4d416ac](https://github.com/atty303/pob-web/commit/4d416acf0e72e6b01806abf34ce06c2d5d3a7481))
+* **driver:** render text from a GPU glyph atlas ([935e7de](https://github.com/atty303/pob-web/commit/935e7de92d610b77765d5e17b54707bab4f15085))
+
+## [0.30.1](https://github.com/atty303/pob-web/compare/v0.30.0...v0.30.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* Unify Path of Exile and cloud storage authentication ([#178](https://github.com/atty303/pob-web/issues/178)) ([59bc7cc](https://github.com/atty303/pob-web/commit/59bc7ccf61f94d47cee81eda6ca5c9cfd792d928))
+* **web:** confirm before authentication logout ([7afd856](https://github.com/atty303/pob-web/commit/7afd85610ba83ff149daa96fc1d6c1ccefbd2a46))
+* **web:** synchronize PoB authentication lifecycle ([fdae48e](https://github.com/atty303/pob-web/commit/fdae48eea0d5408bb6c517f3dc94326639f1f1db))
+* **web:** unify cloud storage authentication ([f8c72b4](https://github.com/atty303/pob-web/commit/f8c72b438402a2b5e4adb816135a905dfdcf3224))
+
+## [0.30.0](https://github.com/atty303/pob-web/compare/v0.29.3...v0.30.0) (2026-08-11)
+
+
+### Features
+
+* support Path of Exile OAuth imports ([4f4f122](https://github.com/atty303/pob-web/commit/4f4f122ef50244fc028340273d88a4d640f200e6))
+* support Path of Exile OAuth imports ([#176](https://github.com/atty303/pob-web/issues/176)) ([eec8e63](https://github.com/atty303/pob-web/commit/eec8e63e102736fba8f34ae5bc20f3712b7b7029))
+
+
+### Bug Fixes
+
+* **driver:** handle current PoB OAuth and async flows ([77695e7](https://github.com/atty303/pob-web/commit/77695e79a4ee07394cca4fafbefa3063bafae5b7))
+* **lua:** update LuaJIT compatibility runtime ([5a42f7c](https://github.com/atty303/pob-web/commit/5a42f7c098711a8f2846cfa0ea9a22a8a5541fcf))
+* **web:** classify known upstream PoB errors ([237c7c4](https://github.com/atty303/pob-web/commit/237c7c4db90898fbb0d0fd3f8be1f26a89ec6aac))
+* **web:** require copied diagnostics before reporting ([8ee84dc](https://github.com/atty303/pob-web/commit/8ee84dc70d4b9c2962e29b49a98ec6e31b0ae7c2))
+
+## [0.29.3](https://github.com/atty303/pob-web/compare/v0.29.2...v0.29.3) (2026-08-10)
+
+
+### Bug Fixes
+
+* **driver:** normalize clipboard interactions ([3e45da2](https://github.com/atty303/pob-web/commit/3e45da25529a42d3614dde10a127806c669b6c45))
+* **driver:** normalize clipboard interactions ([#173](https://github.com/atty303/pob-web/issues/173)) ([132bd3c](https://github.com/atty303/pob-web/commit/132bd3c128bf1496b080fdd8e16084ada3e21ed3))
+* **driver:** prevent input capture navigation ([fa20190](https://github.com/atty303/pob-web/commit/fa201903097b5fa8519313cbd6249117bfce8d8c))
+* **driver:** prevent input capture navigation ([#175](https://github.com/atty303/pob-web/issues/175)) ([e8cf03b](https://github.com/atty303/pob-web/commit/e8cf03b1d61686398c2dd893ffc986575a70bee3))
+* **driver:** release physical keys when hidden ([b36cf9a](https://github.com/atty303/pob-web/commit/b36cf9a6fbdc7ad4f320c1e930a53ba6a38a36b9))
+* **driver:** release physical keys when hidden ([#170](https://github.com/atty303/pob-web/issues/170)) ([a007f8a](https://github.com/atty303/pob-web/commit/a007f8a121788a4ddc03582ac6456437523d2e9e))
+* **driver:** restore URL build imports ([ee9e09c](https://github.com/atty303/pob-web/commit/ee9e09c3b6953cc7b72973f3ace469520678d095))
+* **driver:** restore URL build imports ([#174](https://github.com/atty303/pob-web/issues/174))f ([461bb13](https://github.com/atty303/pob-web/commit/461bb135180309521b5fc8dab477c851eb817364)), closes [#172](https://github.com/atty303/pob-web/issues/172)
+
+## [0.29.2](https://github.com/atty303/pob-web/compare/v0.29.1...v0.29.2) (2026-08-10)
+
+
+### Bug Fixes
+
+* classify and report Path of Building errors ([b435e12](https://github.com/atty303/pob-web/commit/b435e129a37dd8d3dbf834dde6957a28ecc6004a))
+* improve PoB error reporting and browser workflows ([#167](https://github.com/atty303/pob-web/issues/167)) ([8c42df1](https://github.com/atty303/pob-web/commit/8c42df1cf6ab5aa60b1a61f685547ec10df0a556))
+* stack version cards vertically ([fd45253](https://github.com/atty303/pob-web/commit/fd452531d94464b2861ca1b086a3aee079c28a8f))
+* symbolize Firefox WebAssembly errors ([ac99814](https://github.com/atty303/pob-web/commit/ac9981466a81f49fb86f0e9027e7b8734e268060))
+
+## [0.29.1](https://github.com/atty303/pob-web/compare/v0.29.0...v0.29.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **driver:** restore cross-browser performance benchmark ([d402631](https://github.com/atty303/pob-web/commit/d4026319fa10b139e967c59f2517033e09f885bd))
+* improve driver diagnostics and overlay behavior ([#164](https://github.com/atty303/pob-web/issues/164)) ([3c38e30](https://github.com/atty303/pob-web/commit/3c38e3063c5256a7b492210d0f4afd7bcf359db9))
+* **sentry:** symbolize WebAssembly crashes ([7859e52](https://github.com/atty303/pob-web/commit/7859e529fc038232545a99fe5ba5e438945b4c20))
+* **web:** allow clean production builds ([97f7b94](https://github.com/atty303/pob-web/commit/97f7b945ce167131c2f0d6ce2ea9a6ab728fc310))
+* **web:** restore overlay toolbar layout ([c928a73](https://github.com/atty303/pob-web/commit/c928a73459235ad851f25f2d376d19295a9de3da))
+
+## [0.29.0](https://github.com/atty303/pob-web/compare/v0.28.0...v0.29.0) (2026-08-09)
+
+
+### Features
+
+* **sentry:** add intentional issue test path ([d05cb7e](https://github.com/atty303/pob-web/commit/d05cb7e22a14d33cf5dff8084b9d89a1990b98fd))
+* **sync:** test upstream compatibility ([335d674](https://github.com/atty303/pob-web/commit/335d674a24a7ac69553495640f7732876dd65601))
+* **sync:** test upstream compatibility ([#162](https://github.com/atty303/pob-web/issues/162)) ([602c02c](https://github.com/atty303/pob-web/commit/602c02cf0c2dc3501f158fcc883ca0f26860a367))
+
+
+### Bug Fixes
+
+* **ci:** avoid undeclared ripgrep dependency ([5fd2f14](https://github.com/atty303/pob-web/commit/5fd2f142ebc49b578c0259b046acbfd7f406dd83))
+* **ci:** use available app token action ([60300fd](https://github.com/atty303/pob-web/commit/60300fd0c3a2e2fd98cc95ab2f3d301f1f58583d))
+* **driver:** prevent bridge memory corruption ([40634e4](https://github.com/atty303/pob-web/commit/40634e46f6a33abeeaa88e9da42b35233312d84c))
+* **driver:** prevent bridge memory corruption ([#160](https://github.com/atty303/pob-web/issues/160)) ([613bdeb](https://github.com/atty303/pob-web/commit/613bdeb8e055f79e73866b67290fc886183e2f72))
+* **driver:** upload WebAssembly source maps ([466bbeb](https://github.com/atty303/pob-web/commit/466bbeb2f02cfb8479691a895c4c5b3499cf9ab0))
+* **sync:** use available app token action ([866cb42](https://github.com/atty303/pob-web/commit/866cb4219919338b40eb8fcbddd33edbe16f1fb1))
+* **sync:** use POSIX task arguments ([2457768](https://github.com/atty303/pob-web/commit/2457768f4ecd82752c60004614ccb7f9d8e87ab4))
+* **web:** isolate development document responses ([843b9dd](https://github.com/atty303/pob-web/commit/843b9dda57fffcc10930fa16851eaebb79a2fc8e))
+
+
+### Performance Improvements
+
+* **driver:** optimize Emscripten runtime build ([1f3ceea](https://github.com/atty303/pob-web/commit/1f3ceea7a51224059164edcbda355375b4b68d44))
+* **driver:** optimize Lua short-string table lookups ([16341c4](https://github.com/atty303/pob-web/commit/16341c496f9da063ff8e16dc37df462125193cf8))
+* **driver:** replace Asyncify and optimize Emscripten runtime ([#158](https://github.com/atty303/pob-web/issues/158)) ([ddec123](https://github.com/atty303/pob-web/commit/ddec123a9139380108fe6fb2ab5d4e15dad5d10c))
+
+## [0.28.0](https://github.com/atty303/pob-web/compare/v0.27.7...v0.28.0) (2026-08-09)
+
+
+### Features
+
+* **driver:** add getBuildCode() to extract current build as shareable code ([00ec8e8](https://github.com/atty303/pob-web/commit/00ec8e8fa40c5465dc02bf5b655fb7723e15c1b7))
+* **driver:** add getBuildCode() to extract current build as shareable code ([#150](https://github.com/atty303/pob-web/issues/150)) ([136ba09](https://github.com/atty303/pob-web/commit/136ba09c707264440bd2b40c22ec860216e71743))
+
+
+### Bug Fixes
+
+* **ci:** build driver before static checks ([ec64053](https://github.com/atty303/pob-web/commit/ec640534b20735d96db93d927f6c83a5d5eceb97))
+* **ci:** quote version file path ([4e66e54](https://github.com/atty303/pob-web/commit/4e66e541fc821b356c3adeb1e88c475a11681a59))
+* **driver:** load PoE items with LuaJIT semantics ([c9e4d58](https://github.com/atty303/pob-web/commit/c9e4d58f14dd56746fd797c43d6165c5d865f83d))
+* **driver:** load PoE items with LuaJIT semantics ([#155](https://github.com/atty303/pob-web/issues/155)) ([448b338](https://github.com/atty303/pob-web/commit/448b338d0570dd555ac633fa158f789293981492)), closes [#154](https://github.com/atty303/pob-web/issues/154)
+
+## [0.27.7](https://github.com/atty303/pob-web/compare/v0.27.6...v0.27.7) (2026-03-07)
+
+
+### Bug Fixes
+
+* 🐛 Cap WebGL gl.MAX_TEXTURE_IMAGE_UNITS to 100 ([f1e57e7](https://github.com/atty303/pob-web/commit/f1e57e7ae346d2341834d3c403a66f6b5467f0bd))
+* 🐛 Cap WebGL gl.MAX_TEXTURE_IMAGE_UNITS to 100 ([#146](https://github.com/atty303/pob-web/issues/146)) ([b084566](https://github.com/atty303/pob-web/commit/b08456682afa957d99381db9b7b0d94d494e3108))
+* **driver:** make loadBuildFromCode deterministic on running instances ([0b6a8eb](https://github.com/atty303/pob-web/commit/0b6a8eb181c51f92382f373c3ea9f86275817b30))
+* **driver:** make loadBuildFromCode deterministic on running instances ([#144](https://github.com/atty303/pob-web/issues/144)) ([90e32fa](https://github.com/atty303/pob-web/commit/90e32fa2d8fe1ebb71690e88912fd2e8730ecfec))
+
+## [0.27.6](https://github.com/atty303/pob-web/compare/v0.27.5...v0.27.6) (2026-02-05)
+
+
+### Bug Fixes
+
+* **driver:** add GetDrawColor to fix crash in PoB v0.13.0 ([2d71c36](https://github.com/atty303/pob-web/commit/2d71c361263f22b535b8b7d889c8110deeee07c7))
+* **driver:** add GetDrawColor to fix crash in PoB v0.13.0 ([#139](https://github.com/atty303/pob-web/issues/139)) ([dc11c7c](https://github.com/atty303/pob-web/commit/dc11c7c217483c68ead96b9f40014b280c22c4dc))
+
+## [0.27.5](https://github.com/atty303/pob-web/compare/v0.27.4...v0.27.5) (2025-11-23)
+
+
+### Bug Fixes
+
+* **driver:** add double-click support to keyboard event handling ([ee6e289](https://github.com/atty303/pob-web/commit/ee6e2893723433c219163d0e9b0b01c2689463e3))
+* **driver:** add double-click support to keyboard event handling ([#136](https://github.com/atty303/pob-web/issues/136)) ([ac2e811](https://github.com/atty303/pob-web/commit/ac2e8117d7b563329b764aa35623c0e542fa4ec6))
+* **driver:** add support for new lcurl options for SSL and redirects ([822f9b0](https://github.com/atty303/pob-web/commit/822f9b06ebde05330140d8290dfce4c98662f2cd))
+* **driver:** add support for new lcurl options for SSL and redirects ([125a7dd](https://github.com/atty303/pob-web/commit/125a7dd1fca3c2713a77581e55913b8dac6f6282))
+* **driver:** add support for new lcurl options for SSL and redirects ([#138](https://github.com/atty303/pob-web/issues/138)) ([1caa834](https://github.com/atty303/pob-web/commit/1caa834fd2db64e552b79c03ee2adf90f9403ad8))
+
+## [0.27.4](https://github.com/atty303/pob-web/compare/v0.27.3...v0.27.4) (2025-11-04)
+
+
+### Bug Fixes
+
+* **web:** add missing Fontin font files ([56d78f4](https://github.com/atty303/pob-web/commit/56d78f4e260d2ed1e3f4aa48d96a3264f15e6199))
+
+## [0.27.3](https://github.com/atty303/pob-web/compare/v0.27.2...v0.27.3) (2025-11-04)
+
+
+### Bug Fixes
+
+* **driver:** add Fontin font loading ([fb6aa8c](https://github.com/atty303/pob-web/commit/fb6aa8ca1997df6b6fd2798ef7883921c5606313))
+* **driver:** add placeholder LuaJIT options ([9494309](https://github.com/atty303/pob-web/commit/94943097d6d670b907bb16cbc465e77bc33db150))
+* **driver:** bump version to 0.27.2 in package-lock.json ([c3eee25](https://github.com/atty303/pob-web/commit/c3eee258e332916e9dfef851fd162a8234198f1e))
+* PoB1 v2.57.0 compatibility ([#132](https://github.com/atty303/pob-web/issues/132)) ([f3d6768](https://github.com/atty303/pob-web/commit/f3d6768eda7dd630a3259e3b119aa0b66bbbe8bc))
+
+## [0.27.2](https://github.com/atty303/pob-web/compare/v0.27.1...v0.27.2) (2025-09-06)
+
+
+### Bug Fixes
+
+* **driver:** optimize line width calculation using reduce to avoid stack overflow ([908c444](https://github.com/atty303/pob-web/commit/908c444c361b11baff76537b7879c49a9f846b2d))
+* **driver:** update keyboard handling to use new PoBKeyboardState and DOMKeyboardState ([c88051a](https://github.com/atty303/pob-web/commit/c88051ad032365be7466efc67f9e3bfa92ca0d53)), closes [#128](https://github.com/atty303/pob-web/issues/128)
+
+## [0.27.1](https://github.com/atty303/pob-web/compare/v0.27.0...v0.27.1) (2025-08-18)
+
+
+### Bug Fixes
+
+* **driver:** increase stack size ([a57cf01](https://github.com/atty303/pob-web/commit/a57cf011903bff45f4f4fd84876b4748bc2c67f3))
+
+## [0.27.0](https://github.com/atty303/pob-web/compare/v0.26.0...v0.27.0) (2025-08-16)
+
+
+### Features
+
+* **ErrorDialog:** implement error handling UI for critical errors ([f64acb5](https://github.com/atty303/pob-web/commit/f64acb5bfc14772044db4cafeee933136ad5d529))
+* **sentry:** add console logging integration and enable logs ([3b6b4c6](https://github.com/atty303/pob-web/commit/3b6b4c69deae7b546bdaa42113a205fd898d9a08))
+
+
+### Bug Fixes
+
+* added error dialog ([#125](https://github.com/atty303/pob-web/issues/125)) ([b167b95](https://github.com/atty303/pob-web/commit/b167b95b6f72972e4e43c6170e581d929c3c99ac))
+* **PoBWindow:** update error handling to set error state instead of throwing ([f4b560d](https://github.com/atty303/pob-web/commit/f4b560d04aad0b74e7e15be8c0200628b29ef70d))
+* **worker:** add error handling during frame processing in tick method ([246ca8a](https://github.com/atty303/pob-web/commit/246ca8a3cfc08626f4bea92b42260592575000b1))
+
+## [0.26.0](https://github.com/atty303/pob-web/compare/v0.25.0...v0.26.0) (2025-08-16)
+
+
+### Features
+
+* add zoom control popup with TailwindCSS styling ([ee71bb4](https://github.com/atty303/pob-web/commit/ee71bb44dd09d03e634468bd01fcb0fa475b107b))
+* **driver:** add arrow keys to virtual keyboard ([abce212](https://github.com/atty303/pob-web/commit/abce212a7c63ea2180d8a7239c032f5126ae9140))
+* **driver:** add auto/fixed size toggle for canvas controls ([eb210bd](https://github.com/atty303/pob-web/commit/eb210bdf5bda37296a9cb4e066f41db11d2db000))
+* **driver:** add flexible spacing for external toolbar components ([8612139](https://github.com/atty303/pob-web/commit/8612139e255eb23ccdf701842563a085bd953cf1))
+* **driver:** add mobile touch support with responsive toolbar ([f43dcef](https://github.com/atty303/pob-web/commit/f43dcef55124cd16433b33968bba10f10bcea1ee))
+* **driver:** add symbol mode to virtual keyboard ([c24e5e6](https://github.com/atty303/pob-web/commit/c24e5e6e08d384eabb0c2381131c3428a3447fcf))
+* **driver:** implement minimum canvas size with auto-pan and fix coordinate transforms ([b6bd31a](https://github.com/atty303/pob-web/commit/b6bd31a5212c06012777080866db96c4c5a74396))
+* mobile support ([#122](https://github.com/atty303/pob-web/issues/122)) ([90ed6af](https://github.com/atty303/pob-web/commit/90ed6af7aed8c75d165fb7d2084bfea9530f8e44))
+* **overlay:** improve virtual keyboard positioning and zoom reset behavior ([de7eae4](https://github.com/atty303/pob-web/commit/de7eae482cefb645e6ec24185900c1077457a7f0))
+* **touch:** add three-finger pan gesture for universal canvas navigation ([dbb5936](https://github.com/atty303/pob-web/commit/dbb5936c900ff8c8d05521db0e3db479dfe49a99))
+* **web:** add comprehensive help system with mobile controls guide ([256037c](https://github.com/atty303/pob-web/commit/256037cb6e7a3fdf1e1f659ec7ab06b36a35321a))
+
+
+### Bug Fixes
+
+* **biome:** update fix command to use --write option for file modifications ([7fb699b](https://github.com/atty303/pob-web/commit/7fb699be518b115e713d6c2720e08d1d5f6d07f9))
+* **canvas:** implement smart initial zoom for mobile screens ([04a5684](https://github.com/atty303/pob-web/commit/04a56848abb0abcfc4378231b21b779cbf698549))
+* **driver:** add Delete key to virtual keyboard layout ([3cfbd3c](https://github.com/atty303/pob-web/commit/3cfbd3c8ad5e332258d484cc6c8bab04450616af))
+* **driver:** add virtual keyboard and fix overlay layout issues ([a8eb252](https://github.com/atty303/pob-web/commit/a8eb252f49e8663cc641190e6963ccc996b437b5))
+* **driver:** adjust baseline positioning for improved keyboard centering ([b568f87](https://github.com/atty303/pob-web/commit/b568f8757bef72c32e28bbe5c48d3c325c36e9b4))
+* **driver:** apply pw: prefix to all TailwindCSS classes in overlay components ([5518d1f](https://github.com/atty303/pob-web/commit/5518d1f328181b0c19e3481ddc57ba8374b98c55))
+* **driver:** constrain virtual keyboard position within viewport on resize ([410ea3c](https://github.com/atty303/pob-web/commit/410ea3cb4e80dbcfa0abe747070db9b4dbbbc4dc))
+* **driver:** correct virtual keyboard special key handling ([afc98ee](https://github.com/atty303/pob-web/commit/afc98eef7c4efeab059a303e3d90c5a5bc122956))
+* **driver:** fix mouse pan functionality by correcting TouchTransformManager updates ([f6e349e](https://github.com/atty303/pob-web/commit/f6e349ee95f58995ebb61f16692019966123558b))
+* **driver:** fix transform translateY drift on canvas container resize ([4458784](https://github.com/atty303/pob-web/commit/44587840db0d8aee1b54b923b7ea03df5f0eb292))
+* **driver:** implement proper Shift key simulation for virtual keyboard ([fb7066a](https://github.com/atty303/pob-web/commit/fb7066ae50ec82ed65fe8f16e57430b0d89feedd))
+* **driver:** improve canvas resize handling for reliable PoB rendering ([d0ae5c7](https://github.com/atty303/pob-web/commit/d0ae5c78fb8e48325dfb5723a45cc03d3394ea1b))
+* **driver:** improve mouse state tracking for all events ([162cc51](https://github.com/atty303/pob-web/commit/162cc5122fc9f9252be64c6986bb6d7be6b8d4f6))
+* **driver:** prevent mouse movement during 2-finger zoom gestures ([7882f79](https://github.com/atty303/pob-web/commit/7882f79febf9c8309412a38827c7b3fea0818ece))
+* **driver:** prevent overlay events from propagating to PoB canvas ([9089960](https://github.com/atty303/pob-web/commit/9089960036bbde39e5af384d2fe80ad68387fc46))
+* **driver:** prevent zoom interference during 3-finger pan gestures ([fae1427](https://github.com/atty303/pob-web/commit/fae142762f4d31649c15198eb7d891d3195c4176))
+* **driver:** recalculate initial scale on orientation change ([1f8d715](https://github.com/atty303/pob-web/commit/1f8d71593518c9bfe3876f2b65e1d8f94be03f4e))
+* **driver:** reduce long press timeout for right-click to 300ms ([bef6776](https://github.com/atty303/pob-web/commit/bef6776f6d7c47a817ccee3802182881327ad7d4))
+* **driver:** refactor drag mode to pan tool with improved touch interaction ([b763cb6](https://github.com/atty303/pob-web/commit/b763cb64c1808fbb1a62c61b085193b76a4e0005))
+* **driver:** refactor keyboard management to use unified KeyboardState ([4b8ff88](https://github.com/atty303/pob-web/commit/4b8ff883893ee2eead1d6a05a16ffc24d09a663f))
+* **driver:** remove automatic pan mode based on canvas size ([7510443](https://github.com/atty303/pob-web/commit/75104430c17e128eac9eaeb6138974926e1cb4f7))
+* **driver:** remove unnecessary hold mode functionality from virtual keyboard ([fc3fca8](https://github.com/atty303/pob-web/commit/fc3fca8b3b2aead2499c99fdde1555268e9f570f))
+* **driver:** reorder toolbar buttons for better UX ([c050c2a](https://github.com/atty303/pob-web/commit/c050c2a0d93f470f58043c5753e5b1d427ebf731))
+* **driver:** replace CSS layers with O- prefix for broader browser support ([445788f](https://github.com/atty303/pob-web/commit/445788f530159df6e27b982335ff0018e85ba826))
+* **driver:** resolve coordinate transformation issues with CSS transforms ([bd075a5](https://github.com/atty303/pob-web/commit/bd075a58a35ea92f83f6777bd077a42842f15ae0))
+* **driver:** resolve iOS Safari viewport and safe area issues ([1b39960](https://github.com/atty303/pob-web/commit/1b39960f1760363b0275797d448b13f95eaed768))
+* **driver:** resolve linter errors in fullscreen implementation ([f0cf183](https://github.com/atty303/pob-web/commit/f0cf183f0a48cb576fecd143b9ffe6d767a25196))
+* **driver:** resolve mobile fullscreen API compatibility issues ([a892569](https://github.com/atty303/pob-web/commit/a8925698609a6418d153e38a6d990cbdecd660a7))
+* **driver:** resolve tablet rotation layout issues with centralized management ([823c527](https://github.com/atty303/pob-web/commit/823c527faae548824f81baeac8e4f5145c88ff69))
+* **driver:** simplify DOM structure to use only canvas container and overlay ([1b6377b](https://github.com/atty303/pob-web/commit/1b6377b3f4a6bc6c3727157ddbf840626061cd17))
+* **driver:** update DaisyUI classes to use pw: prefix for proper scoping ([29b4359](https://github.com/atty303/pob-web/commit/29b435950520fb851525c9dc442897812ceed552))
+* **driver:** update toolbar to iOS HIG standard 44pt touch targets ([3939ef4](https://github.com/atty303/pob-web/commit/3939ef40fd501aadb29493c3b3ecd253cf0ad6fe))
+* **hooks:** update stash method to use 'patch-file' for pre-commit and fix hooks ([542a60b](https://github.com/atty303/pob-web/commit/542a60b3f9e504eb38320c549d604bf27d652fec))
+* **keyboard:** refine keypress handling for single character keys ([b549cee](https://github.com/atty303/pob-web/commit/b549cee4c861b6f5351a4dbaf62c1f2dcc29b18b))
+* **mobile:** reduce two-finger scroll sensitivity and add PWA manifest ([36ac4c5](https://github.com/atty303/pob-web/commit/36ac4c5266657f3744b914d66c43809f067872f8))
+* **mobile:** resolve iOS Safari toolbar overlap issues ([23e6617](https://github.com/atty303/pob-web/commit/23e661725cddfa42e060086165aaf48f26e0d11f))
+* **overlay:** prevent virtual keyboard position reset on toggle ([fcf291a](https://github.com/atty303/pob-web/commit/fcf291ad147d04b5e70e6cd0f421e50fdba550a9))
+* **touch:** improve gesture handling for consistent zoom and pan behavior ([d87f407](https://github.com/atty303/pob-web/commit/d87f40791fc1ac736fb357192fc6a0ec390e9910))
+* **ui:** adjust padding for virtual keyboard and add dark theme to hero section ([6c8702e](https://github.com/atty303/pob-web/commit/6c8702edc46a9a23dd280e308a2fc8a7ba5a6a63))
+* **web:** prevent multiple driver start executions in PoBWindow ([8f51e27](https://github.com/atty303/pob-web/commit/8f51e277d08dda9c4dfea101eb7b3985646a0e41))
+* **web:** remove tutorial setting from settings dialog ([63bc382](https://github.com/atty303/pob-web/commit/63bc382eba29375f4e84d245b5e1158135bbabee))
+
+## [0.25.0](https://github.com/atty303/pob-web/compare/v0.24.0...v0.25.0) (2025-08-14)
+
+
+### Features
+
+* Add comprehensive render statistics tracking and display ([8676af6](https://github.com/atty303/pob-web/commit/8676af628e4b138fcb2a7b7e89b05bc466d6706d))
+* Add layer visibility toggle functionality ([50d4da3](https://github.com/atty303/pob-web/commit/50d4da3f7f3219df212045e31a431446b7edff0c))
+
+
+### Performance Improvements
+
+* **driver:** add VAO support for improved vertex attribute management ([aa18e6b](https://github.com/atty303/pob-web/commit/aa18e6b635d316a9d2b2a4de1ce86d0caeaa23ea))
+* **driver:** compress vertex color data to reduce memory usage ([e3def1a](https://github.com/atty303/pob-web/commit/e3def1a0db036d526c1311389957cf112cc05386))
+* **driver:** implement index buffer for WebGL backend ([2338314](https://github.com/atty303/pob-web/commit/23383147250fd59eb310275288001b7b5d3cecfd))
+* **driver:** merge consecutive commands into ranges for efficient processing ([81a3850](https://github.com/atty303/pob-web/commit/81a3850cb657e9860b69674ad317b5f9f6bb27d7))
+* **driver:** optimize command sorting to minimize allocations and copies ([c23b038](https://github.com/atty303/pob-web/commit/c23b0382e1b541457de65f9bab348e339b91524c))
+
+## [0.24.0](https://github.com/atty303/pob-web/compare/v0.23.0...v0.24.0) (2025-08-14)
+
+
+### Features
+
+* add WebGPU rendering backend ([13746aa](https://github.com/atty303/pob-web/commit/13746aa0da2aee1ae695524155066bd5122a43b2))
+* **driver:** Add WebGPU rendering backend ([#117](https://github.com/atty303/pob-web/issues/117)) ([b85b6af](https://github.com/atty303/pob-web/commit/b85b6af8c8c1e4264a00fb3d241414e5fa7af200))
+
+
+### Bug Fixes
+
+* **driver:** enable WebGPU by default in attachToDOM and setCanvas ([e424a78](https://github.com/atty303/pob-web/commit/e424a787a4ed7f256bf61768e7f426d730c42044))
+* **driver:** fix WebGPU image texture upload ([e95d05f](https://github.com/atty303/pob-web/commit/e95d05f8fbb2691e60d013f689ff55687798fdbe))
+* **driver:** fix WebGPU layer compositing by managing frame-level clearing ([70a99a5](https://github.com/atty303/pob-web/commit/70a99a540dd0eeed9c366c46c638cb54f8f28f7c))
+* **driver:** fix WebGPU shader uniform control flow error ([c3a5ab4](https://github.com/atty303/pob-web/commit/c3a5ab4f921ada88ce6930c791eacfb13a7e1377))
+* **driver:** fix WebGPU texture binding order ([71dada4](https://github.com/atty303/pob-web/commit/71dada46c9a567fe4931b44369ba941e913fd11f))
+* **driver:** fix WebGPU texture rendering issues ([6b49f09](https://github.com/atty303/pob-web/commit/6b49f09b5de53578142edc7f1c712cb061353eef))
+
+
+### Performance Improvements
+
+* **driver:** enhance data structure alignment and command handling in draw module ([60ecb3c](https://github.com/atty303/pob-web/commit/60ecb3ce719ffb5d424c660a6fe952922960aa6f))
+* **driver:** improve build configurations for Debug and Release modes ([f620be4](https://github.com/atty303/pob-web/commit/f620be454b0dd873878a9ad7a1ce5205d4e1d7ab))
+* **driver:** optimize VertexBuffer allocation in WebGL/WebGPU backends ([1335242](https://github.com/atty303/pob-web/commit/133524258a0c86a29a1db8713300ecf08866cfbf))
+* optimizations ([#119](https://github.com/atty303/pob-web/issues/119)) ([eef7429](https://github.com/atty303/pob-web/commit/eef7429ec354a442a7846bf4f49f8d118d71cb10))
+
+## [0.23.0](https://github.com/atty303/pob-web/compare/v0.22.2...v0.23.0) (2025-08-12)
+
+
+### Bug Fixes
+
+* **devcontainer:** update mise feature configuration to include install option ([d630aa6](https://github.com/atty303/pob-web/commit/d630aa64deb6f657fa347a3c9a13a033aa2b565b))
+
+
+### Miscellaneous Chores
+
+* release 0.23.0 ([05a3863](https://github.com/atty303/pob-web/commit/05a3863eaefcc16921d6e079f438b233bb1bb97d))
+
+## [0.22.2](https://github.com/atty303/pob-web/compare/v0.22.1...v0.22.2) (2025-04-28)
+
+
+### Bug Fixes
+
+* **workflow:** enable schedule for checking new releases ([a598013](https://github.com/atty303/pob-web/commit/a5980137c7303153d37f083b75bbc7a1022b96ad))
+* **workflow:** remove game input and use matrix for game selection ([16b7432](https://github.com/atty303/pob-web/commit/16b7432fcc683894e38951d755843a9e6381b23d))
+
+## [0.22.1](https://github.com/atty303/pob-web/compare/v0.22.0...v0.22.1) (2025-04-28)
+
+
+### Bug Fixes
+
+* **version:** update poe2 head version to v0.8.0 ([f4472d3](https://github.com/atty303/pob-web/commit/f4472d358a450175933b685c0d34047608255c58))
+* **version:** update poe2 head version to v0.8.0 ([#111](https://github.com/atty303/pob-web/issues/111)) ([7929fe6](https://github.com/atty303/pob-web/commit/7929fe6e717be63232d435a968b5c8687917674e))
+
+## [0.22.0](https://github.com/atty303/pob-web/compare/v0.21.2...v0.22.0) (2025-04-28)
+
+
+### Features
+
+* devcontainer and mise for dev environment ([4011521](https://github.com/atty303/pob-web/commit/40115214fbf91f1bfb9256d4bd0d367227f53d9f))
+* **driver:** enhance dev server configuration with environment variables ([b4db2b1](https://github.com/atty303/pob-web/commit/b4db2b1f40963c334910aaf7207b2670371b3e81))
+
+
+### Bug Fixes
+
+* **dds.test.ts:** update file path for reading DDS data ([2d16e3a](https://github.com/atty303/pob-web/commit/2d16e3a237728eba08df1a9c7e38a2e7301903db))
+* **driver:** increase  buffer size ([fe43dec](https://github.com/atty303/pob-web/commit/fe43deca77285f7d13a2ee36960b3497ff80b9a6))
+* **sync-upstream:** add checksum algorithm to S3 upload command for version.json ([79e32f9](https://github.com/atty303/pob-web/commit/79e32f90e137879a3ac1545ea2020effe85691e9))
+* **sync-upstream:** add notification for no new tags found and display new tags in summary ([26ab1fd](https://github.com/atty303/pob-web/commit/26ab1fdaba2cfef126f214d40aa2e8ff2ed1879c))
+* **sync-upstream:** add pagination and improve logging for latest tags retrieval ([ba53459](https://github.com/atty303/pob-web/commit/ba534599ff5eef3ecc031572024a1281ee94cad7))
+* **sync-upstream:** await exec command for S3 version.json upload ([e51255d](https://github.com/atty303/pob-web/commit/e51255dd6ef0f356d172341cc4f9cf3fd1b58120))
+* **sync-upstream:** await exec commands for packing and syncing new tags ([02aed0a](https://github.com/atty303/pob-web/commit/02aed0a811e9ccd8cfdf30a26a5ef235f62eb1eb))
+* **sync-upstream:** improve logging format for latest tags output ([c66fea2](https://github.com/atty303/pob-web/commit/c66fea2747687acca18f0694544889aa450bb010))
+* **sync-upstream:** optimize tag retrieval using GraphQL and improve sorting of latest tags ([c99dc2c](https://github.com/atty303/pob-web/commit/c99dc2ce0e56ea3c16671795d74780e1f8b0b21c))
+* **sync-upstream:** reduce the number of tags fetched to improve performance ([31b092c](https://github.com/atty303/pob-web/commit/31b092c8b9701e0b358472b5cd5fd6c6d948f0f3))
+* **sync-upstream:** remove exit on error in tag retrieval script ([ea354ed](https://github.com/atty303/pob-web/commit/ea354ed70ca8567a1b968b9179485ac304f1353e))
+* **sync-upstream:** remove pagination for tag retrieval and add exit on error ([155fce0](https://github.com/atty303/pob-web/commit/155fce029008b2e2dd1cba5166fbae0a9e7c4d75))
+* **sync-upstream:** remove setup-node action and adjust job steps for better clarity ([cafb415](https://github.com/atty303/pob-web/commit/cafb41564787eab8bab6cb644fc665c384c6b755))
+* **sync-upstream:** update condition checks for new versions to handle null values ([0abe35c](https://github.com/atty303/pob-web/commit/0abe35c19363497260a7da78f0ad84f604991fc5))
+* **version.json:** reorder version entries for consistency ([3c181d0](https://github.com/atty303/pob-web/commit/3c181d0c1c8434e38ebfca36c823ed06a20d621f))
+* **version.json:** update poe2 head version to v0.5.0 ([b53160d](https://github.com/atty303/pob-web/commit/b53160d9936d4b1207eaca323083b3418efb101e))
+
+## [0.21.2](https://github.com/atty303/pob-web/compare/v0.21.1...v0.21.2) (2025-02-25)
+
+
+### Bug Fixes
+
+* **driver:** update exported functions and dynamic import path ([d0cc76c](https://github.com/atty303/pob-web/commit/d0cc76c5887ee652c2e739e7f2029367d2fee661))
+* **driver:** update exported functions and dynamic import path ([#105](https://github.com/atty303/pob-web/issues/105)) ([99b64e2](https://github.com/atty303/pob-web/commit/99b64e218cef772e8eb40cd3bc1f32fc4a30ca49)), closes [#104](https://github.com/atty303/pob-web/issues/104)
+
+## [0.21.1](https://github.com/atty303/pob-web/compare/v0.21.0...v0.21.1) (2025-02-24)
+
+
+### Bug Fixes
+
+* build ([80c83a2](https://github.com/atty303/pob-web/commit/80c83a2efc70a25fe6acc7c06eeccffdb77ca2da))
+
+## [0.21.0](https://github.com/atty303/pob-web/compare/v0.20.0...v0.21.0) (2025-02-24)
+
+
+### Features
+
+* **driver:** add lua-utf8.wasm loading ([1eda6b0](https://github.com/atty303/pob-web/commit/1eda6b0a6ac5a2ee9b845f45f0bcb27065496c99))
+* **driver:** add support for building lua-utf8 module ([9be9ce5](https://github.com/atty303/pob-web/commit/9be9ce552df83993be5eb4f97e5622fea2d3d743))
+* **driver:** add support for building lua-utf8 module  ([#100](https://github.com/atty303/pob-web/issues/100)) ([c240c3d](https://github.com/atty303/pob-web/commit/c240c3d1f786877b1ea171ed8f7e36aeef4523ff)), closes [#98](https://github.com/atty303/pob-web/issues/98)
+
+
+### Bug Fixes
+
+* **driver:** build ([01b07bd](https://github.com/atty303/pob-web/commit/01b07bd9a1b8c1361e9369478ef29f5d96c22e7e))
+* **driver:** mkdir and rename dir ([8b45a98](https://github.com/atty303/pob-web/commit/8b45a98e2e943a9e564cb036811bf3c3b279b6e5))
+* **driver:** mkdir and rename dir ([#101](https://github.com/atty303/pob-web/issues/101)) ([b4c10ee](https://github.com/atty303/pob-web/commit/b4c10ee883e814c8224d6dd674dbc793ff6c3df0))
+* **packer:** sync v1 path ([6a5331d](https://github.com/atty303/pob-web/commit/6a5331d57a97fd07bd54130d07e5c16c0512d618))
+
+## [0.20.0](https://github.com/atty303/pob-web/compare/v0.19.2...v0.20.0) (2025-01-30)
+
+
+### Features
+
+* **web:** add close button to Sidebar for improved user experience ([4a9b760](https://github.com/atty303/pob-web/commit/4a9b760900c0cfefc8dfd8788939ccb65583b8df))
+* **web:** add PoBController and routing for Path of Exile versions ([53ef093](https://github.com/atty303/pob-web/commit/53ef09317d922a3736af6550eef60f9e9d6f8d4e))
+* **web:** add user namespace support for Cloudflare KV integration ([0881765](https://github.com/atty303/pob-web/commit/08817657a166ef20e271dec2595b8b4fe8dcd937))
+* **web:** enhance PerformanceView and LineChart for improved render time visualization ([a455312](https://github.com/atty303/pob-web/commit/a455312fdd20d2e4ef57bc2ba53d485959b2d86e))
+* **web:** enhance PoBController to manage tutorial and drawer state ([6b0ae4d](https://github.com/atty303/pob-web/commit/6b0ae4d05241e42afee1747ce9ac25dddfe83c25))
+* **web:** integrate dayjs for date handling and update version data structure ([07bdb1b](https://github.com/atty303/pob-web/commit/07bdb1b28a89167d053867a8f7019d8f4deea09c))
+* **web:** re-bumped ([#94](https://github.com/atty303/pob-web/issues/94)) ([a581e85](https://github.com/atty303/pob-web/commit/a581e851df8950296baba16fb721361e53fda62f))
+* **web:** refactor routing for Path of Exile versions and update PoBController links ([f0c3f12](https://github.com/atty303/pob-web/commit/f0c3f12a37080950d4639a982eada321f7457ef9))
+* **web:** update redirect logic for build hash handling in routes and PoBWindow ([5f4df34](https://github.com/atty303/pob-web/commit/5f4df342d9dac52d93ade91b4cdcdf720da3d2e8))
+
+
+### Bug Fixes
+
+* **web:** enhance WebGL backend with improved texture handling and format support ([5a77c4c](https://github.com/atty303/pob-web/commit/5a77c4c70a32909731e229405307cf711bf74ab3))
+* **web:** implement error boundary for route error handling ([9829ffb](https://github.com/atty303/pob-web/commit/9829ffb7a6884cd9f6bdf0ab2908b00520dfaf92))
+* **web:** update hero background image path and adjust deployment script for build output ([097868b](https://github.com/atty303/pob-web/commit/097868b9f70d8238002ac283ca4bc5d7af93469d))
+
+## [0.19.2](https://github.com/atty303/pob-web/compare/v0.19.1...v0.19.2) (2025-01-28)
+
+
+### Bug Fixes
+
+* **driver:** generate mipmaps for image ([9fe51fe](https://github.com/atty303/pob-web/commit/9fe51fe3114cbcce43a871317a8978f4d9b6907c))
+* **driver:** generate mipmaps for image ([#90](https://github.com/atty303/pob-web/issues/90)) ([957f295](https://github.com/atty303/pob-web/commit/957f295ba633c5eca77d752131baf77ab911f56d))
+
+## [0.19.1](https://github.com/atty303/pob-web/compare/v0.19.0...v0.19.1) (2025-01-27)
+
+
+### Performance Improvements
+
+* **driver:** fix performance in zenfs ([1cbcaff](https://github.com/atty303/pob-web/commit/1cbcaffdcf5a01ca990248420e95dfc6a4eebc62))
+
+## [0.19.0](https://github.com/atty303/pob-web/compare/v0.18.0...v0.19.0) (2025-01-27)
+
+
+### Features
+
+* **driver:** add dds texture support ([166f15e](https://github.com/atty303/pob-web/commit/166f15e50c5b0c2d3bf879c92bc8867031d8f495))
+* **driver:** add dds texture support at packer ([c4f1cc0](https://github.com/atty303/pob-web/commit/c4f1cc063f24fc60f85b9ef9f44f785e6b81348b))
+* **driver:** Add stackLayer and maskLayer support for draw commands ([cc885eb](https://github.com/atty303/pob-web/commit/cc885eb6e092d7ca38592c93063c3448e9ff7f48))
+* **driver:** update TEXTURE_2D_ARRAY ([650e0c6](https://github.com/atty303/pob-web/commit/650e0c6f4f3c93dcbfd78f052fbb034819c6225f))
+* **driver:** using webgl2 ([ae715e8](https://github.com/atty303/pob-web/commit/ae715e81b05538f8c846c306e34131bf73fd6681))
+* **web:** Add multi-product support for PoE1 and PoE2 integration ([ab9477f](https://github.com/atty303/pob-web/commit/ab9477f611a2cfbe3891bf78813facbe31a0a4ee))
+
+
+### Bug Fixes
+
+* **driver:** Add improvements for DDS texture handling and logging ([2c774b4](https://github.com/atty303/pob-web/commit/2c774b42b4238c1fcd03db1fd83385d9fc8b9f41))
+* **driver:** blend function ([cd2e5c4](https://github.com/atty303/pob-web/commit/cd2e5c4b56d82a14d52a793a68e401d717d82717))
+* **driver:** correct alpha blending ([04bb1b1](https://github.com/atty303/pob-web/commit/04bb1b17a51fff47542e29b4ea324a1eb0fd9890)), closes [#40](https://github.com/atty303/pob-web/issues/40) [#39](https://github.com/atty303/pob-web/issues/39)
+* **driver:** invalid texture target ([a327792](https://github.com/atty303/pob-web/commit/a32779202b1f5428ad24f3bf7f09d3f1fb7f42f0))
+* **packer:** add directory entry ([c876973](https://github.com/atty303/pob-web/commit/c8769733478d5316b78a6e3be33106a00e9fee98))
+* **packer:** case insensitive ([da0ac77](https://github.com/atty303/pob-web/commit/da0ac77aa1ab7601c2f04466f787e1e5f8a39737))
+
+## [0.18.0](https://github.com/atty303/pob-web/compare/v0.17.0...v0.18.0) (2024-11-22)
+
+
+### Features
+
+* **web:** added version.json ([5135afd](https://github.com/atty303/pob-web/commit/5135afd11dd481d4c3091c99c81d0ff7ca39b42d))
+* **web:** automatic version sync with upstream ([d759034](https://github.com/atty303/pob-web/commit/d7590346e9df42c401bbcbd49f25da79144db29f))
+
+## [0.17.0](https://github.com/atty303/pob-web/compare/v0.16.0...v0.17.0) (2024-11-21)
+
+
+### Features
+
+* **web:** added version: v2.49.0 ([9b96660](https://github.com/atty303/pob-web/commit/9b9666004bf5bb1d2d65a6c54f4d585db6af7176))
+
+## [0.16.0](https://github.com/atty303/pob-web/compare/v0.15.0...v0.16.0) (2024-07-30)
+
+
+### Features
+
+* **web:** added version: v2.47.3 ([3010898](https://github.com/atty303/pob-web/commit/3010898c4fd9c1a0fc4521528892aeb6d872c2d8))
+
+## [0.15.0](https://github.com/atty303/pob-web/compare/v0.14.0...v0.15.0) (2024-07-25)
+
+
+### Features
+
+* **web:** added version: v2.46.0 ([63080d6](https://github.com/atty303/pob-web/commit/63080d66ccdefafef3dc28320b942b5a315dce22))
+
+## [0.14.0](https://github.com/atty303/pob-web/compare/v0.13.0...v0.14.0) (2024-07-23)
+
+
+### Features
+
+* **web:** added version: v2.44.0 ([bc72727](https://github.com/atty303/pob-web/commit/bc7272774830d0e2d3941ec72df792fd5986ab91))
+
+## [0.13.0](https://github.com/atty303/pob-web/compare/v0.12.0...v0.13.0) (2024-07-22)
+
+
+### Features
+
+* **web:** added version: v2.43.0 ([409e3b8](https://github.com/atty303/pob-web/commit/409e3b881f38849314ef2963023a35247b2a7827))
+
+## [0.12.0](https://github.com/atty303/pob-web/compare/v0.11.3...v0.12.0) (2024-07-21)
+
+
+### Features
+
+* **web:** added version: 20240722-75b4e82 ([2704e82](https://github.com/atty303/pob-web/commit/2704e828bd3e8b58a1d02986ff4b11c2674cfb1a))
+
+## [0.11.3](https://github.com/atty303/pob-web/compare/v0.11.2...v0.11.3) (2024-05-31)
+
+
+### Bug Fixes
+
+* **web:** double pob window ([b45bcdb](https://github.com/atty303/pob-web/commit/b45bcdba69a34141e1c95b512fc87a9e1e04dabb))
+
+## [0.11.2](https://github.com/atty303/pob-web/compare/v0.11.1...v0.11.2) (2024-05-31)
+
+
+### Bug Fixes
+
+* **web:** mobile viewport ([91a87a5](https://github.com/atty303/pob-web/commit/91a87a54a60d216edcf7d2c858dd5e53d8e99af9))
+
+## [0.11.1](https://github.com/atty303/pob-web/compare/v0.11.0...v0.11.1) (2024-05-26)
+
+
+### Bug Fixes
+
+* **driver:** import to new build ([4784638](https://github.com/atty303/pob-web/commit/4784638a8398b5cf70246cef95612e7d8048a0dd))
+* **driver:** text color and measure cursor index ([93bfd1d](https://github.com/atty303/pob-web/commit/93bfd1d1b3f95028353aa5aad4c4824b3f73c012)), closes [#67](https://github.com/atty303/pob-web/issues/67)
+
+## [0.11.0](https://github.com/atty303/pob-web/compare/v0.10.0...v0.11.0) (2024-05-26)
+
+
+### Features
+
+* **web:** fullscreen ([8a46eed](https://github.com/atty303/pob-web/commit/8a46eed0039175e9f64280c1e64dca641b582f89)), closes [#5](https://github.com/atty303/pob-web/issues/5)
+
+
+### Bug Fixes
+
+* **web:** Modal dialog adds a none existent scrollbar spacing to backdrop ([16c5cc4](https://github.com/atty303/pob-web/commit/16c5cc44c0cfa2148324fa94e3a83cd6cbfd7d3b)), closes [#65](https://github.com/atty303/pob-web/issues/65)
+
+## [0.10.0](https://github.com/atty303/pob-web/compare/v0.9.0...v0.10.0) (2024-05-25)
+
+
+### Features
+
+* **web:** load build from hash ([898dec8](https://github.com/atty303/pob-web/commit/898dec881e2ddce03dc28465d2c24ccdbb009f6e)), closes [#20](https://github.com/atty303/pob-web/issues/20)
+
+
+### Bug Fixes
+
+* **driver:** disallow POESESSID cookie ([1a8879e](https://github.com/atty303/pob-web/commit/1a8879e85d307861de5d4c2d94c4a316ba9d5016))
+* **driver:** fetch result length ([d43d131](https://github.com/atty303/pob-web/commit/d43d131880a8eb2d09eb4ec5c37c747aba1fe832)), closes [#62](https://github.com/atty303/pob-web/issues/62) [#60](https://github.com/atty303/pob-web/issues/60)
+* **driver:** lcurl header handling ([26a1b48](https://github.com/atty303/pob-web/commit/26a1b489ce4d8e7e02cabe201c0377472e65ed0b))
+* **driver:** rasterize text longer than texture width ([7fbc274](https://github.com/atty303/pob-web/commit/7fbc274b72b4bcba9357d0e9a7e2e4732e3c587a)), closes [#22](https://github.com/atty303/pob-web/issues/22)
+* **driver:** render always when window is visible ([44b0537](https://github.com/atty303/pob-web/commit/44b0537b50b6f7b8899575cf6dc13f098748e434)), closes [#63](https://github.com/atty303/pob-web/issues/63)
+
+## [0.9.0](https://github.com/atty303/pob-web/compare/v0.8.0...v0.9.0) (2024-05-21)
+
+
+### Features
+
+* **driver:** implement subscript and lcurl.safe ([#57](https://github.com/atty303/pob-web/issues/57)) ([b108bef](https://github.com/atty303/pob-web/commit/b108befeaebcbc2880964525b39bfbebac059720))
+
+
+### Bug Fixes
+
+* **driver:** find timeless jewel ([17110fe](https://github.com/atty303/pob-web/commit/17110feff9c9be37e754a04ed66f666f629e207c)), closes [#16](https://github.com/atty303/pob-web/issues/16)
+
+## [0.8.0](https://github.com/atty303/pob-web/compare/v0.7.6...v0.8.0) (2024-05-19)
+
+
+### Features
+
+* added cloudflare kv filesystem ([d2acef0](https://github.com/atty303/pob-web/commit/d2acef00c209d3fbf634aa94f43a29c5748d32b4)), closes [#48](https://github.com/atty303/pob-web/issues/48)
+
+
+### Bug Fixes
+
+* **driver:** don't clear cache ([dc1df89](https://github.com/atty303/pob-web/commit/dc1df89db8ac4e217b8c6cbc52fe1dde456762f7)), closes [#49](https://github.com/atty303/pob-web/issues/49)
+
+## [0.7.6](https://github.com/atty303/pob-web/compare/v0.7.5...v0.7.6) (2024-05-19)
+
+
+### Bug Fixes
+
+* **driver:** rename file ([f65bd1d](https://github.com/atty303/pob-web/commit/f65bd1dec86f40d5743c7176727d0febf067c2e8))
+* **driver:** use opfs ([09329b6](https://github.com/atty303/pob-web/commit/09329b64c9c8be0a2acb5b65aa44607cd96a2cbf))
+* **driver:** wasmfs ([988c733](https://github.com/atty303/pob-web/commit/988c7332801b44b01b1bbb29a82874de240f19e7))
+
+
+### Performance Improvements
+
+* **driver:** load time ([967fec7](https://github.com/atty303/pob-web/commit/967fec7e969cdf12a1c237e312156bd1f74efca4))
+
+## [0.7.5](https://github.com/atty303/pob-web/compare/v0.7.4...v0.7.5) (2024-05-16)
+
+
+### Bug Fixes
+
+* **driver:** disable antialias ([7313473](https://github.com/atty303/pob-web/commit/7313473cfc71e7c5a37a220b9847a2be7f3e13bb)), closes [#6](https://github.com/atty303/pob-web/issues/6)
+* **driver:** measure multiline text ([4c42200](https://github.com/atty303/pob-web/commit/4c42200cc774ef3b0b49e253d7b2df1898557ed8)), closes [#21](https://github.com/atty303/pob-web/issues/21)
+
+## [0.7.4](https://github.com/atty303/pob-web/compare/v0.7.3...v0.7.4) (2024-05-16)
+
+
+### Bug Fixes
+
+* **driver:** alpha ([835e1f3](https://github.com/atty303/pob-web/commit/835e1f3088817fd8f9deef301c5386bc78bf573b))
+* **driver:** bin packing text renderer ([617519f](https://github.com/atty303/pob-web/commit/617519f1d64227b4effa085e5e83939d953a1898))
+* **driver:** cors error ([eba2d9a](https://github.com/atty303/pob-web/commit/eba2d9a20f372a42f7ec47c0ff070e91d1f8c040))
+* **driver:** local storage ([d61bf30](https://github.com/atty303/pob-web/commit/d61bf30b59f988e4b160a2c63d96d83e6e987497)), closes [#42](https://github.com/atty303/pob-web/issues/42)
+* **driver:** nodefs ([fbd1fff](https://github.com/atty303/pob-web/commit/fbd1fffe1efac27704816ec90526cc078ec25048))
+* **driver:** open url ([1dca8f7](https://github.com/atty303/pob-web/commit/1dca8f712e38f7310125fb6debded729c4211b44)), closes [#44](https://github.com/atty303/pob-web/issues/44)
+* **driver:** shell ([8b85466](https://github.com/atty303/pob-web/commit/8b854660634ec9974f04cb25bfc9b9fab5d99c13))
+
+## [0.7.3](https://github.com/atty303/pob-web/compare/v0.7.2...v0.7.3) (2024-05-14)
+
+
+### Bug Fixes
+
+* **web:** link to known missing feature ([559648b](https://github.com/atty303/pob-web/commit/559648b794df82b9073b2332f368e63de3028eec))
+
+## [0.7.2](https://github.com/atty303/pob-web/compare/v0.7.1...v0.7.2) (2024-05-14)
+
+
+### Bug Fixes
+
+* **driver:** blend func ([ad210a0](https://github.com/atty303/pob-web/commit/ad210a0d5396cd66056292b89285280febf48b3b)), closes [#40](https://github.com/atty303/pob-web/issues/40)
+* **driver:** dirty count ([1ab827e](https://github.com/atty303/pob-web/commit/1ab827e3264570c7ce02184bf9d80b6995e27f9f))
+* **driver:** text flickering ([6429b1f](https://github.com/atty303/pob-web/commit/6429b1f81c3db35309d827febcc84b44e101707e)), closes [#19](https://github.com/atty303/pob-web/issues/19)
+
+## [0.7.1](https://github.com/atty303/pob-web/compare/v0.7.0...v0.7.1) (2024-05-14)
+
+
+### Bug Fixes
+
+* added texture flags ([59d9148](https://github.com/atty303/pob-web/commit/59d9148d202b025d59021ac0813d6aa4608bd3c8))
+
+## [0.7.0](https://github.com/atty303/pob-web/compare/v0.6.0...v0.7.0) (2024-05-14)
+
+
+### Features
+
+* run pob on web worker ([cd8b7e4](https://github.com/atty303/pob-web/commit/cd8b7e4b63dc4e0a76f9343fee2629e7f5ae4513))
+
+
+### Bug Fixes
+
+* **driver:** cloud storage on worker ([094ca1c](https://github.com/atty303/pob-web/commit/094ca1c27c2008132b42c551341aea8457e94f8e))
+* **driver:** font loading on worker ([2808c86](https://github.com/atty303/pob-web/commit/2808c86a19f822ff926cbbd1a021ea1a566711b3))
+* **driver:** local storage on worker ([f70c0ba](https://github.com/atty303/pob-web/commit/f70c0bae181a889399c25b0dd5611c439fe4347e))
+* **web:** auth error ([8e06d0e](https://github.com/atty303/pob-web/commit/8e06d0ed237fe4221133c02932b2f789c171e3b2))
+* **web:** pob window component cleanup ([5598f5a](https://github.com/atty303/pob-web/commit/5598f5a6295f615b78e3de086b31163bf1d99154))
+
+## [0.6.0](https://github.com/atty303/pob-web/compare/v0.5.0...v0.6.0) (2024-05-13)
+
+
+### Features
+
+* selectable PoB version ([#34](https://github.com/atty303/pob-web/issues/34)) ([d3bd5eb](https://github.com/atty303/pob-web/commit/d3bd5ebdaf8ed4c96be3033e9728e4be2bdddfbd))
+
+
+### Bug Fixes
+
+* **web:** preload font ([07d491e](https://github.com/atty303/pob-web/commit/07d491efcd86d237ad60e921f7260f78b46f3ea9)), closes [#4](https://github.com/atty303/pob-web/issues/4)
+
+## [0.5.0](https://github.com/atty303/pob-web/compare/v0.4.0...v0.5.0) (2024-05-12)
+
+
+### Features
+
+* **driver:** implement fs ([79c3792](https://github.com/atty303/pob-web/commit/79c3792c6a2ed440a739d64f709cc6b715abb06f))
+* **driver:** implement MakeDir/RemoveDir ([d56fd60](https://github.com/atty303/pob-web/commit/d56fd60964319c38a5a3dd2a4457b1525fbf44f2))
+* **web:** added auth0 ([a81b930](https://github.com/atty303/pob-web/commit/a81b930ca5449a084b2d000e478ea10c0062ab3d))
+* **web:** added cloud filesystem ([4c1f246](https://github.com/atty303/pob-web/commit/4c1f2466a1a93aa8923c56531ba5495085ece962))
+* **web:** added kv api ([bfeec36](https://github.com/atty303/pob-web/commit/bfeec36fb4fa2f9939d985fbe9e6c3700df954a4))
+
+## [0.4.0](https://github.com/atty303/pob-web/compare/v0.3.4...v0.4.0) (2024-05-11)
+
+
+### Features
+
+* **driver:** implement DownloadPage API ([#23](https://github.com/atty303/pob-web/issues/23)) ([7d88097](https://github.com/atty303/pob-web/commit/7d8809724f0a61f22d2f9899fecdbc1b932dde8e))
+
+## [0.3.4](https://github.com/atty303/pob-web/compare/v0.3.3...v0.3.4) (2024-05-11)
+
+
+### Bug Fixes
+
+* **driver:** compatibility with lua 5.1 ([b0852c3](https://github.com/atty303/pob-web/commit/b0852c3b26ed94d50834f51543ba9f296fdd1b45))
+* **driver:** fixes [#1](https://github.com/atty303/pob-web/issues/1) ([7daa555](https://github.com/atty303/pob-web/commit/7daa55510f8cbfbcbbcbe8d9e5f26a9bf6cb681a))
+
+## [0.3.3](https://github.com/atty303/pob-web/compare/v0.3.2...v0.3.3) (2024-05-11)
+
+
+### Bug Fixes
+
+* throw on error ([cfa83ca](https://github.com/atty303/pob-web/commit/cfa83ca2d38945560441cbe36c73627de0f9ac7f))
+
+## [0.3.2](https://github.com/atty303/pob-web/compare/v0.3.1...v0.3.2) (2024-05-11)
+
+
+### Bug Fixes
+
+* console.log ([bc603e1](https://github.com/atty303/pob-web/commit/bc603e135964701ca865f8b42ab7d559a80d3912))
+
+## [0.3.1](https://github.com/atty303/pob-web/compare/v0.3.0...v0.3.1) (2024-05-11)
+
+
+### Features
+
+* GetTime ([9ea83b8](https://github.com/atty303/pob-web/commit/9ea83b819036710dcd579168c7fa8d1e54dc1f11))
+
+
+### Bug Fixes
+
+* deploy ([943969d](https://github.com/atty303/pob-web/commit/943969d9092a2ea274dfb5087d2f96fbe802a997))
+
+## [0.3.0](https://github.com/atty303/pob-web/compare/v0.3.0...v0.3.0) (2024-05-11)
+
+
+### Bug Fixes
+
+* deploy ([943969d](https://github.com/atty303/pob-web/commit/943969d9092a2ea274dfb5087d2f96fbe802a997))
+
+## [0.3.0](https://github.com/atty303/pob-web/compare/v0.2.0...v0.3.0) (2024-05-11)
+
+
+### Features
+
+* implement Deflate, Inflate ([48de82f](https://github.com/atty303/pob-web/commit/48de82fcd3cf55639ae97dec5d88729316ee8b5f))
+
+## [0.2.0](https://github.com/atty303/pob-web/compare/v0.1.0...v0.2.0) (2024-05-10)
+
+
+### Features
+
+* copy and paste ([5da8038](https://github.com/atty303/pob-web/commit/5da8038f1dda3320c53bb7594da24329de3597ee))
+* DrawStringCursorIndex ([7b487d9](https://github.com/atty303/pob-web/commit/7b487d923a28a3241d05d1516c8f0bcc16e78703))
+* keyboard handling ([d9f6885](https://github.com/atty303/pob-web/commit/d9f6885371ab61ffef061c8c9a77cd5ad9b205b9))
+* keyboard handling ([d718e1c](https://github.com/atty303/pob-web/commit/d718e1ca8028024461723fb73bf33f22dabf50c5))
+* keyboard handling ([2b2df41](https://github.com/atty303/pob-web/commit/2b2df41fda587129b0f1cf1ac325c7170ffc27ef))
+* keyboard handling ([8ae2d3e](https://github.com/atty303/pob-web/commit/8ae2d3e25a3e19f3e972c9b32cb7291bf8994a62))
+* keyboard handling ([ef20882](https://github.com/atty303/pob-web/commit/ef20882302fe679db6a64371897e3bc185722167))
+
+## 0.1.0 (2024-05-10)
+
+
+### Features
+
+* added engine ([77ff143](https://github.com/atty303/pob-web/commit/77ff14382eaa135d583d884cf5defb463ddbed08))
+* draw quad ([476bdf4](https://github.com/atty303/pob-web/commit/476bdf42aa82a2d9a57a2052bcdf89d10be3fa79))
+* draw string ([8c1a7ec](https://github.com/atty303/pob-web/commit/8c1a7ecb2ef655e2d261b3c91c1251dcbab8a34f))
+* drawimage ([f4242e8](https://github.com/atty303/pob-web/commit/f4242e8ec5dc6be5f0ca4a12b427b5f803d6dad7))
+* favicon ([a9ee139](https://github.com/atty303/pob-web/commit/a9ee13956271718f3db1fed8cf17522a179e5fa6))
+* image draw ([fdeac21](https://github.com/atty303/pob-web/commit/fdeac21eca704271e65876cb7164dd377bcebc46))
+* image handle ([c9bf48d](https://github.com/atty303/pob-web/commit/c9bf48d78fa3c374ed1fbb2ca4151fe314c56f48))
+* launch headless ([eb2cb49](https://github.com/atty303/pob-web/commit/eb2cb4952b55c875a44a3d83667e6adebd6008cb))
+* launch pob ([d7cb7f8](https://github.com/atty303/pob-web/commit/d7cb7f8ba5aac121c567445a041db77480dcf309))
+* resize ([4a83c3c](https://github.com/atty303/pob-web/commit/4a83c3c210845a602479b223da694598bd06c6aa))
+* screen size ([5e663ce](https://github.com/atty303/pob-web/commit/5e663ce7d06cbd7077bf36509748f178f5f92476))
+* tree draw ([e3ef19d](https://github.com/atty303/pob-web/commit/e3ef19d206d2599b04ce413fd53aa6c987d65ad9))
+* viewport ([e5f2947](https://github.com/atty303/pob-web/commit/e5f294792daa05c58e9ab23d00a515b4316c17ff))
+* web ([839045d](https://github.com/atty303/pob-web/commit/839045d0397331cf57d9ac6dee706b5656d7fc14))
+* web ([f4dd2dc](https://github.com/atty303/pob-web/commit/f4dd2dc8b265d887991e0c47804637146ff718db))
+* web ([0df4d97](https://github.com/atty303/pob-web/commit/0df4d971348701d3a8bde9c9c50fcaefb05bd5bd))
+* web ([5fa0df4](https://github.com/atty303/pob-web/commit/5fa0df4c1085887a903309f94aad9e91d6352a20))
+
+
+### Bug Fixes
+
+* color escape ([f26dac8](https://github.com/atty303/pob-web/commit/f26dac855c0135e1addc4d002665dbce7a712ae5))
+* driver shell ([af74562](https://github.com/atty303/pob-web/commit/af745627319e603b51296e5c029d1b575fd7e764))
+* mouse position ([e24383c](https://github.com/atty303/pob-web/commit/e24383c8d4cfd8dd5690d43cb2a5f38eb90fb6ee))
+
+
+### Miscellaneous Chores
+
+* release 0.1.0 ([436c595](https://github.com/atty303/pob-web/commit/436c595df034fd55ef37bbc25aabfeaf6abd38c7))

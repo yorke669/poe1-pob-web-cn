@@ -1,0 +1,48 @@
+amends "package://github.com/jdx/hk/releases/download/v1.54.1/hk@1.54.1#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.54.1/hk@1.54.1#/Builtins.pkl"
+local linters = new Mapping<String, Step> {
+
+    ["deno-fmt"] {
+        glob = List("*.js", "*.jsx", "*.json", "*.jsonc", "*.md", "*.mts", "*.ts", "*.tsx")
+        stage = glob
+        check = "deno fmt --check {{files}}"
+        fix = "deno fmt {{files}}"
+    }
+
+    ["deno-lint"] {
+        glob = List("*.js", "*.jsx", "*.mts", "*.ts", "*.tsx")
+        check = "deno lint {{files}}"
+        fix = "deno lint --fix {{files}}"
+    }
+
+    ["deno-check"] {
+        glob = List("*.js", "*.jsx", "*.mts", "*.ts", "*.tsx")
+        check = "deno run --allow-all tools/tasks/check-files.ts {{files}}"
+    }
+
+    ["pkl"] {
+        glob = "*.pkl"
+        check = "pkl eval {{files}} >/dev/null"
+        prefix = "mise exec -- "
+    }
+
+    ["actionlint"] = (Builtins.actionlint)
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps {
+            ...linters
+        }
+    }
+    ["fix"] {
+        fix = true
+        stash = "git"
+        steps = linters
+    }
+    ["check"] {
+        steps = linters
+    }
+}
