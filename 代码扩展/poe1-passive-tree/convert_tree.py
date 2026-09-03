@@ -101,7 +101,7 @@ def main():
     ver = args.version
     TREE_LUA = os.path.join(DIR, 'source', 'TreeData_%s.lua' % ver)
     SPRITES_LUA = os.path.join(DIR, 'source', 'Sprites_%s.lua' % ver)
-    OUT_JS = os.path.join(DIR, 'poe1-tree-%s.js' % ver)
+    OUT_JS = os.path.join(DIR, 'poe1-tree-%s.js' % ver.replace('_', '.'))
 
     print('解析 tree.lua ...')
     tree = load_lua(TREE_LUA)
@@ -232,6 +232,8 @@ def main():
         }
         if nd.get('ascendancyName') or nd.get('ascendancy'):
             o['ascendancy'] = nd.get('ascendancyName') or nd.get('ascendancy')
+        if nd.get('reminderText'):
+            o['reminderText'] = as_list(nd.get('reminderText'))
         if nd.get('isProxy'):
             o['isProxy'] = True
         if nd.get('expansionJewel'):
@@ -250,7 +252,7 @@ def main():
         out_nodes[nid_s] = o
 
     # meta: 复用现有文件结构 (字段一致, 仅版本不同)
-    meta = {'game': 'poe1', 'version': ver, 'packTag': (args.packtag or '') + '-lua'}
+    meta = {'game': 'poe1', 'version': ver.replace('_', '.'), 'packTag': (args.packtag or '') + '-lua'}
     if os.path.exists(EXISTING_JS):
         try:
             et = open(EXISTING_JS, encoding='utf-8').read()
@@ -258,7 +260,7 @@ def main():
             if isinstance(emeta, dict):
                 for k, v in emeta.items():
                     meta.setdefault(k, v)
-                meta['version'] = ver
+                meta['version'] = ver.replace('_', '.')
                 meta['packTag'] = (args.packtag or '') + '-lua'
         except Exception as e:
             print('[warn] 读取现有 meta 失败:', e)

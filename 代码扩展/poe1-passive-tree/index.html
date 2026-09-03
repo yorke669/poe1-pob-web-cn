@@ -55,6 +55,7 @@
   .node-type { font-size: 11px; color: var(--dim); margin-bottom: 8px; }
   .stats { margin: 0; padding-left: 16px; color: #a9b6c6; font-size: 12px; }
   .stats li { margin-bottom: 2px; }
+  .reminder { margin-top: 6px; font-size: 11px; color: var(--dim); font-style: italic; line-height: 1.6; }
   .hint { color: var(--dim); font-size: 12px; }
   .kv { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
   .kv span:last-child { color: var(--gold); }
@@ -78,6 +79,12 @@
     padding: 8px 10px; pointer-events: none;
   }
   .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); }
+  #searchbar { flex: none; border-top: 1px solid var(--border); background: var(--panel); padding: 8px 14px; max-height: 240px; overflow-y: auto; display: flex; gap: 24px; align-items: flex-start; }
+  #searchbar .search-section { flex: 1; min-width: 260px; }
+  #searchbar .legend-section { flex: none; max-width: 540px; }
+  #searchbar .row { display: flex; align-items: center; gap: 10px; }
+  #searchbar #search { flex: 1; max-width: 560px; }
+  #searchbar #search-result { margin-top: 8px; max-height: 150px; overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -125,7 +132,35 @@
   <div id="stage">
     <canvas id="canvas"></canvas>
     <div id="tooltip"></div>
-    <div class="overlay-hud legend">
+    <div class="loading" id="loading">载入天赋树数据…</div>
+  </div>
+
+  <aside>
+    <div class="block" id="jewel-block" style="display:none">
+      <div class="sec-title">珠宝插槽影响范围</div>
+      <div class="kv"><span>插槽</span><span id="jewel-name">-</span></div>
+      <div class="kv"><span>半径</span><span id="jewel-radius">-</span></div>
+      <div class="kv"><span>范围内可影响节点</span><span id="jewel-count">-</span></div>
+      <div class="hint" style="margin-top:4px">规则同 PoB / pobzh 军团珠宝计算器：排除升华、专精、插槽、职业起点与未放置条目；定位代理节点只计数不列出。已分配的天赋会排在前面。</div>
+      <div id="jewel-detail" style="margin-top:6px;max-height:150px;overflow-y:auto"></div>
+    </div>
+    <div class="scroll" id="detail">
+      <div class="hint">点击天赋即可分配（需与已点亮天赋用连线连通）；点击已分配天赋可取消。右侧显示当前选中天赋的信息。</div>
+    </div>
+  </aside>
+</main>
+<div id="searchbar">
+  <div class="search-section">
+    <div class="sec-title">搜索天赋（名称 / 词条）</div>
+    <div class="row">
+      <input type="search" id="search" placeholder="例如：Elemental Overload / increased Life">
+      <span class="hint">点结果可在树上定位</span>
+    </div>
+    <div id="search-result"></div>
+  </div>
+  <div class="legend-section">
+    <div class="sec-title">图例</div>
+    <div class="legend">
       <div><i style="background:#e8c56a"></i>已分配</div>
       <div><i style="background:#566274"></i>未分配</div>
       <div><i style="background:#8a5d20"></i>基石</div>
@@ -136,29 +171,10 @@
       <div><i style="background:#f2b84b"></i>珠宝半径</div>
       <div style="width:100%;margin-top:2px">滚轮缩放 · 拖拽平移 · 点击天赋分配/取消 · 点插槽看半径</div>
     </div>
-    <div class="loading" id="loading">载入天赋树数据…</div>
   </div>
+</div>
 
-  <aside>
-    <div class="block">
-      <div class="sec-title">搜索天赋（名称 / 词条）</div>
-      <input type="search" id="search" placeholder="例如：Elemental Overload / increased Life" style="width:100%">
-      <div id="search-result" style="margin-top:6px;max-height:180px;overflow-y:auto"></div>
-    </div>
-    <div class="block" id="jewel-block" style="display:none">
-      <div class="sec-title">珠宝插槽影响范围</div>
-      <div class="kv"><span>插槽</span><span id="jewel-name">-</span></div>
-      <div class="kv"><span>半径</span><span id="jewel-radius">-</span></div>
-      <div class="kv"><span>范围内可影响节点</span><span id="jewel-count">-</span></div>
-      <div class="hint" style="margin-top:4px">规则同 PoB / pobzh 军团珠宝计算器：排除升华、专精、插槽、职业起点与未放置条目；定位代理节点只计数不列出。已分配的天赋会排在前面。</div>
-      <div id="jewel-detail" style="margin-top:6px;max-height:150px;overflow-y:auto"></div>
-    </div>
-    <div class="scroll" id="detail">
-      <div class="hint">在树上悬停查看天赋，点击可分配（需与起点连通）。</div>
-    </div>
-  </aside>
-</main>
-
+<script src="data/translations.js"></script>
 <script>
 (function () {
   "use strict";
@@ -327,6 +343,14 @@
     state.allocated = Object.create(null);
     var s = startId();
     if (s) state.allocated[s] = true;
+  }
+
+  // 是否已分配了除起点之外的天赋（用于切换职业/升华前确认是否清空）
+  function hasBuild() {
+    var keys = Object.keys(state.allocated);
+    if (keys.length === 0) return false;
+    if (keys.length === 1) return keys[0] !== startId();
+    return true;
   }
 
   /** 从起点 BFS，剔除不再连通的已分配节点 */
@@ -514,6 +538,14 @@
         ctx.lineWidth = Math.max(alloc ? 5 : 2.5, 1 / B);
       }
       ctx.stroke();
+      // 已分配天赋：外圈金色高亮，便于看清已点亮的多条路径
+      if (alloc) {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, R + 6, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(232,197,106,.55)";
+        ctx.lineWidth = Math.max(4, 1 / B);
+        ctx.stroke();
+      }
 
       if (n.type === "socket") {
         ctx.beginPath();
@@ -634,8 +666,15 @@
     if (n.type === "mastery" && n.masteryEffects && n.masteryEffects.length) {
       stats = n.masteryEffects.map(function (e) { return (e.stats || []).join(" / "); });
     }
-    if (!stats.length) return "";
-    return "<ul>" + stats.slice(0, 12).map(function (s) { return "<li>" + escapeHtml(s) + "</li>"; }).join("") + "</ul>";
+    var html = "";
+    if (stats.length) {
+      html += "<ul>" + stats.slice(0, 12).map(function (s) { return "<li>" + escapeHtml(tr(s, "stat")) + "</li>"; }).join("") + "</ul>";
+    }
+    var rt = n.reminderText || [];
+    if (rt.length) {
+      html += '<div class="reminder">' + rt.map(function (s) { return escapeHtml(tr(s, "reminder")); }).join("<br>") + "</div>";
+    }
+    return html;
   }
 
   function escapeHtml(s) {
@@ -644,11 +683,20 @@
     });
   }
 
+  // 英文 -> 中文 查表翻译；查不到则原样返回（字典来自 data/translations.js 的 window.POE1_TREE_TR）
+  function tr(text, table) {
+    if (text == null) return text;
+    var k = String(text).trim();
+    if (!k) return text;
+    var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR[table]) || {};
+    return dict[k] || text;
+  }
+
   function showTooltip(clientX, clientY, id) {
     if (!id) { hideTooltip(); return; }
     var n = NODES[id];
-    tooltip.innerHTML = '<div class="t-name">' + escapeHtml(n.name || "") + "</div>" +
-      '<div class="t-type">' + (TYPE_ZH[n.type] || n.type) + (n.ascendancy ? " · " + escapeHtml(n.ascendancy) : "") + "</div>" +
+    tooltip.innerHTML = '<div class="t-name">' + escapeHtml(tr(n.name, "name")) + "</div>" +
+      '<div class="t-type">' + (TYPE_ZH[n.type] || n.type) + (n.ascendancy ? " · " + escapeHtml(tr(n.ascendancy, "name")) : "") + "</div>" +
       statsHtml(n);
     tooltip.style.display = "block";
     var r = stage.getBoundingClientRect();
@@ -669,7 +717,7 @@
     var n = NODES[id];
     var alloc = !!state.allocated[id];
     detail.innerHTML =
-      '<div class="node-name">' + escapeHtml(n.name || "") + "</div>" +
+      '<div class="node-name">' + escapeHtml(tr(n.name, "name")) + "</div>" +
       '<div class="node-type">' + (TYPE_ZH[n.type] || n.type) +
         (n.ascendancy ? " · " + escapeHtml(n.ascendancy) : "") +
         (alloc ? " · <span style='color:#e8c56a'>已分配</span>" : (canAllocate(id) ? " · <span style='color:#67e8f9'>可分配</span>" : "")) +
@@ -715,14 +763,14 @@
     list.sort(function (a, b) { return Number(b.alloc) - Number(a.alloc) || a.name.localeCompare(b.name); });
 
     jewelBlock.style.display = "block";
-    document.getElementById("jewel-name").textContent = (s.name || "插槽") + " #" + id;
+    document.getElementById("jewel-name").textContent = (tr(s.name, "name") || "插槽") + " #" + id;
     document.getElementById("jewel-radius").textContent = state.ring ? inner + " ~ " + outer : "≤ " + outer;
     document.getElementById("jewel-count").textContent =
       list.length + " 天赋（含定位代理共 " + (list.length + proxyCount) + "，已分配 " +
       list.filter(function (x) { return x.alloc; }).length + "）";
     document.getElementById("jewel-detail").innerHTML = list.slice(0, 60).map(function (x) {
       return '<button class="result-item" data-node="' + x.id + '">' +
-        escapeHtml(x.name) + (x.alloc ? ' <span style="color:#e8c56a">·已分配</span>' : "") +
+        escapeHtml(tr(x.name, "name")) + (x.alloc ? ' <span style="color:#e8c56a">·已分配</span>' : "") +
         "<br><small>" + (TYPE_ZH[x.type] || x.type) + " · " + x.id + "</small></button>";
     }).join("");
   }
@@ -737,14 +785,17 @@
     Object.keys(NODES).forEach(function (id) {
       var n = NODES[id];
       if (!isVisible(id, n)) return;
-      var name = (n.name || "").toLowerCase();
-      if (name.indexOf(q) >= 0) { hits.push({ id: id, n: n }); return; }
-      var stats = (n.stats || []).join(" ").toLowerCase();
-      if (stats.indexOf(q) >= 0) hits.push({ id: id, n: n });
+      var nameEn = (n.name || "");
+      var nameZh = tr(nameEn, "name");
+      if (nameEn.toLowerCase().indexOf(q) >= 0 || nameZh.toLowerCase().indexOf(q) >= 0) { hits.push({ id: id, n: n }); return; }
+      var statsEn = (n.stats || []).join(" ");
+      var statsZh = (n.stats || []).map(function (s) { return tr(s, "stat"); }).join(" ");
+      var hay = (statsEn + " " + statsZh).toLowerCase();
+      if (hay.indexOf(q) >= 0) hits.push({ id: id, n: n });
       if (hits.length > 200) return;
     });
     searchResult.innerHTML = hits.slice(0, 40).map(function (h) {
-      return '<button class="result-item" data-node="' + h.id + '">' + escapeHtml(h.n.name || h.id) +
+      return '<button class="result-item" data-node="' + h.id + '">' + escapeHtml(tr(h.n.name, "name") || h.id) +
         "<br><small>" + (TYPE_ZH[h.n.type] || h.n.type) + " · " + h.id + "</small></button>";
     }).join("") || '<div class="hint">无匹配</div>';
   });
@@ -816,7 +867,7 @@
     list.forEach(function (a) {
       var op = document.createElement("option");
       op.value = a.name;
-      op.textContent = a.name + (a.isBloodline ? "（血系）" : "");
+      op.textContent = tr(a.name, "name") + (a.isBloodline ? "（血系）" : "");
       selAsc.appendChild(op);
     });
     selAsc.value = state.asc && list.some(function (a) { return a.name === state.asc; }) ? state.asc : "";
@@ -836,15 +887,31 @@
   }
 
   selClass.addEventListener("change", function () {
-    state.classIndex = Number(selClass.value);
+    var idx = Number(selClass.value);
+    if (idx === state.classIndex) return;
+    if (hasBuild() && !confirm("切换职业会清空已分配的天赋，是否继续？")) {
+      selClass.value = String(state.classIndex);
+      return;
+    }
+    state.classIndex = idx;
     state.asc = "";
     fillAsc();
-    rebuild(false);
+    rebuild(false);   // 重建并把起始点切到新职业
     focusClass();
   });
   selAsc.addEventListener("change", function () {
-    state.asc = selAsc.value;
-    draw(); // 仅高亮所选升华，不移动视口、不重置分配
+    var v = selAsc.value;
+    if (v === state.asc) return;
+    if (hasBuild() && !confirm("切换升华会清空已分配的天赋，是否继续？")) {
+      selAsc.value = state.asc;
+      return;
+    }
+    state.asc = v;
+    resetAllocated();      // 清空天赋
+    state.selectedNode = null;
+    renderDetail(null);
+    renderStats();
+    draw();                // 仅高亮所选升华，不移动视口
   });
   document.getElementById("ck-cluster").addEventListener("change", function (e) {
     state.showCluster = e.target.checked;

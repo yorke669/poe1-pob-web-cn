@@ -122,7 +122,7 @@ python3 convert_tree.py --version 3_29 --packtag v2.67.2
 | 场景 | 是否需改造 | 改造点 |
 |------|-----------|--------|
 | **升级 PoB 版本**（换树数据） | 需批量刷新数据 | 从 PoB 官方仓库下载新版 `src/TreeData/<ver>/tree.lua` + `sprites.lua` 到 `source/`，运行 `python3 convert_tree.py --version <ver> --packtag <PoB版本>` 生成 `poe1-tree-<ver>.js`，再到 `index.html` 的 `DATA_FILES` 登记即可。**逻辑零改动**（字段结构稳定）。 |
-| **天赋名/词条中文化** | 需小改 | 复用 `代码扩展/data/zh-rCN/` 的 `tree_dn.csv`（名）、`tree_sd.csv`（词条）：加载建 `en→zh` 映射，tooltip 与搜索结果展示中文。`isVisible`/`draw` 不动。 |
+| **天赋名/词条中文化** | 已实现（见 §八） | 复用语料见 §8.1；`build_translations.py` 生成 `data/translations.js`，`index.html` 用 `tr()` 查表，`isVisible`/`draw` 不动。 |
 | **接入军团珠宝计算** | 需较大改造 | 自研 LUT（pobzh 的 `.bin`）成本高、且涉及授权；**建议复用** PoB 的 `LegionPassives` + `NodeIndexMapping` 数据（pobzh 静态数据已声明来源）。页面加 LUT 加载 + 解码即可，渲染层不变。 |
 | **嵌入主项目（driver overlay）** | 需适配 | 页面已是自包含 widget；嵌到 `packages/driver/src/js/overlay/` 时主要处理层级/坐标与 React 生命周期，渲染逻辑可直接搬运。 |
 | **性能 / 体验**（移动端手势、离屏预渲染、精灵图合并） | 可选优化 | 节点预渲染到离屏 canvas 再 `drawImage`；双指手势缩放；精灵图合并为单 sheet 减少请求。当前 2351 节点已流畅，非必须。 |
@@ -151,3 +151,72 @@ python3 convert_tree.py --version 3_29 --packtag v2.67.2
 本地预览：`cd 代码扩展/poe1-passive-tree && python3 -m http.server 8123`，浏览器开 `http://127.0.0.1:8123/index.html`（或直接用 `file://` 打开 `index.html`，下拉框切换数据源无需服务器）。
 
 重新生成数据：`python3 convert_tree.py --version 3_29 --packtag v2.67.2`（详见 §3.3）。
+
+---
+
+## 八、中文翻译方案（已实现）
+
+> 设计原则：**运行时查表**，翻译字典与 2MB 的树数据解耦；查不到中文时原样回退英文，对现有渲染逻辑零侵入（`isVisible`/`draw` 完全不动）。
+
+### 8.1 翻译数据源
+
+语料来自 PoB 中文社区翻译产物 `代码扩展/data/zh-rCN/`，已拷贝到 `代码扩展/poe1-passive-tree/data/translations/`：
+
+| CSV | 用途 | 条目数 |
+|-----|------|--------|
+| `tree_dn.csv` | 节点显示名（`name`） | 4220 |
+| `tree_sd.csv` | 词缀描述（`stats` 行） | 6658 |
+| `tree_rt.csv` + `passiveTree.csv` | 提醒文本（`reminderText`） | 245 |
+
+> 注意：PoE 天赋树节点在现代数据里**没有** `dn`/`sd` 字段——可读名称在 `name`、词缀描述在 `stats`（已是英文可读文本），提醒文本在 `reminderText`。翻译就是把这些英文字符串映射成中文，而非解析词缀键。
+
+### 8.2 构建翻译字典
+
+`build_translations.py` 把上述 CSV 合并为 `data/translations.js`，暴露全局：
+
+```js
+window.POE1_TREE_TR = { name: {...}, stat: {...}, reminder: {...} }   // 约 960KB
+```
+
+- 表名约定：`name` ← `tree_dn.csv`、`stat` ← `tree_sd.csv`、`reminder` ← `tree_rt.csv` ∪ `passiveTree.csv`（后者覆盖同名键）。
+- **更新流程**：改 CSV 后重跑 `python3 build_translations.py` 即可刷新，无需重新生成任何树数据文件。
+
+### 8.3 渲染层接入（`index.html`）
+
+新增 `tr(text, table)` 查表函数：
+
+```js
+function tr(text, table) {
+  if (text == null) return text;
+  var k = String(text).trim();
+  if (!k) return text;
+  var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR[table]) || {};
+  return dict[k] || text;   // 未命中 → 原样返回英文
+}
+```
+
+接入点（均走 `tr()`，命中中文、未命中英文）：
+
+- tooltip：节点名 `tr(n.name,"name")`、升华名 `tr(n.ascendancy,"name")`
+- 右侧详情面板：节点名、词缀列表 `tr(s,"stat")`（`.stats`）、提醒文本 `tr(s,"reminder")`（`.reminder` 斜体小字）
+- 搜索：名称 + 词缀**同时匹配中英文**；结果项显示中文名
+- 已分配天赋列表、珠宝面板、升华下拉框
+
+### 8.4 提醒文本
+
+`convert_tree.py` 已补 `reminderText` 字段输出，并重生 `poe1-tree-3.29.js` / `poe1-tree-3.26.js`（3.29 / 3.26 官方 Lua 生成版可显示提醒文本）。
+
+> 限制：默认加载的 `poe1-tree.js`（原抓取版本，无 Lua 源无法重生成）**不显示提醒文本**，但名称 / 词缀照常翻译；在顶部「数据源」切到 3.29 / 3.26 官方版可见完整提醒。
+
+### 8.5 重生成数据注意
+
+`convert_tree.py --version` 使用**下划线**版本号（如 `3_29`），脚本内部会把输出文件名 / 版本号里的 `_` 替换成 `.` 以匹配 `index.html` 引用的 `poe1-tree-3.29.js`；源 Lua 文件名同样是下划线（`TreeData_3_29.lua`）。
+
+### 8.6 文件清单补充
+
+| 文件 | 说明 |
+|------|------|
+| `data/translations/` | 4 个源 CSV（`tree_dn/tree_sd/tree_rt/passiveTree`） |
+| `data/translations.js` | 构建产物，全局 `window.POE1_TREE_TR`（约 960KB） |
+| `build_translations.py` | CSV → `translations.js` 合并脚本 |
+| `poe1-tree-3.29.js` / `poe1-tree-3.26.js` | 已含 `reminderText`（见 §8.4） |
