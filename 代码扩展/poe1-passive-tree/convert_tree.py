@@ -238,6 +238,12 @@ def main():
             o['expansionJewel'] = nd['expansionJewel']
         if nd.get('masteryEffects'):
             o['masteryEffects'] = nd['masteryEffects']
+        if nd.get('isAscendancyStart'):
+            o['isAscendancyStart'] = True
+        if nd.get('isBloodline'):
+            o['isBloodline'] = True
+        if nd.get('classStartIndex') is not None:
+            o['classStartIndex'] = nd['classStartIndex']
         for k in list(o):
             if o[k] is None:
                 del o[k]

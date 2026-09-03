@@ -201,12 +201,16 @@
     });
     classStarts.sort(function (a, b) { return a.node.classStartIndex - b.node.classStartIndex; });
 
-    ascStarts.forEach(function (a) {
-      var startId = (a.node.out || []).filter(function (o) { return NODES[o] && NODES[o].type === "classStart"; })[0];
-      if (!startId) return;
-      var ci = NODES[startId].classStartIndex;
-      (ascByClass[ci] = ascByClass[ci] || []).push({
-        id: a.id, name: a.node.ascendancy, isBloodline: !!a.node.isBloodline
+    // 每个职业起点的 out 直接连到该职业的升华起点（PoB 数据方向：classStart -> ascendancyStart）
+    classStarts.forEach(function (c) {
+      var ci = c.node.classStartIndex;
+      (c.node.out || []).forEach(function (o) {
+        var an = NODES[o];
+        if (an && an.isAscendancyStart) {
+          (ascByClass[ci] = ascByClass[ci] || []).push({
+            id: o, name: an.ascendancy, isBloodline: !!an.isBloodline
+          });
+        }
       });
     });
     Object.keys(ascByClass).forEach(function (ci) {
@@ -229,6 +233,16 @@
     view: null                        // {nodes, edges, bounds, center, fit}
   };
 
+  // 当前职业对应的所有升华名集合（用于决定哪些升华节点渲染在树上）
+  function classAscSet() {
+    var cs = classStarts[state.classIndex];
+    if (!cs) return null;
+    var list = ascByClass[cs.node.classStartIndex] || [];
+    var s = {};
+    list.forEach(function (a) { s[a.name] = true; });
+    return s;
+  }
+
   // ---------- 构建渲染集合 ----------
   function isVisible(id, n) {
     // group < 0 的条目在 PoB 数据里未放置到树上（坐标均为 0,0），不渲染也不参与计算
@@ -238,7 +252,8 @@
     if (id === "root") return false;
     if (n.expansionJewel && n.expansionJewel.size !== 2 && !state.showCluster) return false;
     if (n.type === "ascendancy" || n.ascendancy) {
-      return !!state.asc && n.ascendancy === state.asc;
+      // 所有升华天赋始终渲染在树上（不依赖选择）
+      return true;
     }
     return true;
   }
@@ -413,6 +428,11 @@
     for (var i = 0; i < v.edges.length; i++) {
       var e = v.edges[i];
       if (!inView(e.ax, e.ay) && !inView(e.bx, e.by)) continue;
+      // 升华天赋与起始点（主树）之间不画线：跳过一端为升华、另一端非升华的连线
+      var na = NODES[e.a], nb = NODES[e.b];
+      var aAsc = na.type === "ascendancy" || na.ascendancy;
+      var bAsc = nb.type === "ascendancy" || nb.ascendancy;
+      if (aAsc !== bAsc) continue;
       var on = !!state.allocated[e.a] && !!state.allocated[e.b];
       ctx.beginPath();
       ctx.strokeStyle = on ? "#e8c56a" : "#667386";
@@ -440,9 +460,13 @@
     for (var j = 0; j < v.nodes.length; j++) {
       var n = v.nodes[j];
       if (!inView(n.x, n.y)) continue;
+      var node = NODES[n.id];
+      var isAsc = node.type === "ascendancy" || node.ascendancy;
+      var ascDim = state.asc && isAsc && node.ascendancy !== state.asc;
       var R = nodeRadius(n.type);
       var alloc = !!state.allocated[n.id];
       var sp = alloc ? (n.sp || n.isp) : (n.isp || n.sp);
+      ctx.globalAlpha = ascDim ? 0.4 : 1;
 
       // 可点提示圈
       if (!alloc && canSet[n.id]) {
@@ -463,7 +487,11 @@
 
       ctx.beginPath();
       ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
-      ctx.fillStyle = alloc ? (n.type === "normal" ? "#8a6f2e" : NODE_FILL[n.type] || "#566274") : (NODE_FILL[n.type] || "#566274");
+      var fillColor;
+      if (alloc) fillColor = (n.type === "normal" ? "#8a6f2e" : NODE_FILL[n.type] || "#566274");
+      else if (state.asc && isAsc && node.ascendancy === state.asc) fillColor = "#9a6b2f";
+      else fillColor = NODE_FILL[n.type] || "#566274";
+      ctx.fillStyle = fillColor;
       ctx.fill();
 
       var img = sp ? sheets[sp.sheet] : null;
@@ -478,8 +506,13 @@
 
       ctx.beginPath();
       ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
-      ctx.strokeStyle = alloc ? "#fff1bf" : (n.type === "classStart" ? "#f8fafc" : "#9aa7b8");
-      ctx.lineWidth = Math.max(alloc ? 5 : 2.5, 1 / B);
+      if (state.asc && isAsc && node.ascendancy === state.asc) {
+        ctx.strokeStyle = "#f5c542";
+        ctx.lineWidth = Math.max(6, 2 / B);
+      } else {
+        ctx.strokeStyle = alloc ? "#fff1bf" : (n.type === "classStart" ? "#f8fafc" : "#9aa7b8");
+        ctx.lineWidth = Math.max(alloc ? 5 : 2.5, 1 / B);
+      }
       ctx.stroke();
 
       if (n.type === "socket") {
@@ -726,12 +759,45 @@
     var n = NODES[id];
     if (!n) return;
     state.selectedNode = id;
-    state.scale = 3;
-    var B = fitScale() * state.scale;
-    state.panX = -(n.x - state.view.center.x) * B;
-    state.panY = -(n.y - state.view.center.y) * B;
+    centerView(n.x, n.y, 3);
     renderDetail(id);
     draw();
+  }
+
+  // 以 (cx,cy) 为屏幕中心、给定缩放比例定位视口
+  function centerView(cx, cy, scale) {
+    state.scale = scale;
+    var B = fitScale() * scale;
+    state.panX = -(cx - state.view.center.x) * B;
+    state.panY = -(cy - state.view.center.y) * B;
+    draw();
+  }
+
+  // 选中职业后，把视口聚焦到该职业起点及其升华区
+  function focusClass() {
+    var cs = classStarts[state.classIndex];
+    if (!cs) return;
+    var n = NODES[cs.id];
+    centerView(n.x, n.y, 2.0);
+  }
+
+  // 选中华升后，把视口聚焦到该升华节点所在的局部区域
+  function focusAscendancy() {
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, found = false;
+    state.view.nodes.forEach(function (v) {
+      var n = NODES[v.id];
+      if (n.type === "ascendancy" || n.ascendancy) {
+        found = true;
+        if (v.x < minX) minX = v.x; if (v.x > maxX) maxX = v.x;
+        if (v.y < minY) minY = v.y; if (v.y > maxY) maxY = v.y;
+      }
+    });
+    if (!found) return;
+    var pad = 500;
+    var w = (maxX - minX) + 2 * pad, h = (maxY - minY) + 2 * pad;
+    var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    var B = Math.min(size.w / w, size.h / h);
+    centerView(cx, cy, B / fitScale());
   }
 
   // ---------- 控件 ----------
@@ -774,10 +840,11 @@
     state.asc = "";
     fillAsc();
     rebuild(false);
+    focusClass();
   });
   selAsc.addEventListener("change", function () {
     state.asc = selAsc.value;
-    rebuild(true);
+    draw(); // 仅高亮所选升华，不移动视口、不重置分配
   });
   document.getElementById("ck-cluster").addEventListener("change", function (e) {
     state.showCluster = e.target.checked;
