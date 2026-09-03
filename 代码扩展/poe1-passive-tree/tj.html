@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>军团珠宝计算器</title>
+<style>
+  :root {
+    --bg: #07090d; --panel: #0f131a; --border: #1f2733; --ink: #d7dee8;
+    --dim: #8b97a8; --gold: #e8c56a; --cyan: #22d3ee;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 13px/1.5 -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    flex: none; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 14px; margin: 0 8px 0 0; font-weight: 600; color: var(--gold); white-space: nowrap; }
+  .field { display: flex; align-items: center; gap: 6px; }
+  .field label { color: var(--dim); font-size: 12px; white-space: nowrap; }
+  select, input[type=search], input[type=number], button {
+    background: #151b24; color: var(--ink); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 8px; font-size: 12px; outline: none;
+  }
+  select:focus, input:focus { border-color: #3b82f6; }
+  button { cursor: pointer; }
+  button:hover { background: #1c2431; }
+  .spacer { flex: 1; }
+
+  nav#tabs { flex: none; display: flex; gap: 6px; padding: 6px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .tab { padding: 5px 14px; border-radius: 6px; border: 1px solid var(--border); background: #151b24; color: var(--dim); font-weight: 600; cursor: pointer; font-size: 13px; text-decoration: none; }
+  .tab.active { color: var(--bg); background: var(--gold); border-color: var(--gold); }
+
+  main { flex: 1; display: flex; min-height: 0; }
+  #stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--bg); }
+  canvas { position: absolute; inset: 0; display: block; cursor: grab; touch-action: none; }
+  canvas.dragging { cursor: grabbing; }
+  aside { flex: none; width: 380px; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+  aside .scroll { flex: 1; overflow-y: auto; padding: 12px 14px; }
+
+  #tooltip { position: absolute; pointer-events: none; z-index: 20; max-width: 320px; background: rgba(10,14,20,.96); border: 1px solid #2c3646; border-radius: 8px; padding: 8px 10px; box-shadow: 0 6px 24px rgba(0,0,0,.5); display: none; }
+  #tooltip .t-name { color: var(--gold); font-weight: 600; margin-bottom: 2px; }
+  #tooltip .t-type { color: var(--dim); font-size: 11px; margin-bottom: 6px; }
+  #tooltip ul { margin: 0; padding-left: 16px; font-size: 12px; color: #a9b6c6; }
+
+  .sec-title { font-size: 12px; color: var(--dim); margin: 4px 0 6px; letter-spacing: .5px; display: flex; align-items: center; }
+  .help-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: #2a3340; color: var(--gold); font-size: 11px; font-weight: 700; cursor: help; margin-left: 6px; }
+  .help-tip .tip-pop { position: absolute; left: 0; top: 140%; width: 250px; background: rgba(10,14,20,.98); border: 1px solid #2c3646; border-radius: 8px; padding: 8px 10px; color: var(--ink); font-size: 12px; line-height: 1.5; font-weight: 400; box-shadow: 0 6px 24px rgba(0,0,0,.5); z-index: 30; display: none; text-align: left; white-space: normal; letter-spacing: 0; }
+  .help-tip:hover .tip-pop, .help-tip:focus .tip-pop, .help-tip:focus-within .tip-pop { display: block; }
+  .muted { color: var(--dim); font-size: 12px; }
+  .hint { color: var(--dim); font-size: 12px; }
+  .pick-box { background: #151b24; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+  .pick-info { margin-top: 8px; font-size: 12px; color: var(--dim); }
+  .pick-info b { color: var(--gold); }
+
+  .tj-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .tj-row label { width: 84px; color: var(--dim); font-size: 12px; flex: none; }
+  .tj-row select, .tj-row input { flex: 1; }
+  .tj-actions { display: flex; gap: 8px; margin: 10px 0; }
+  .tj-actions button { flex: 1; }
+
+  .pick-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .pick-actions button { flex: 1; }
+  .pick-actions .hint { flex: none; }
+
+  .subtabs { display: flex; gap: 6px; margin: 14px 0 8px; border-bottom: 1px solid var(--border); }
+  .subtab { flex: 1; padding: 6px 10px; border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none;
+            background: #151b24; color: var(--dim); font-weight: 600; cursor: pointer; font-size: 12px; text-align: center; }
+  .subtab.active { color: var(--bg); background: var(--cyan); border-color: var(--cyan); }
+
+  .tj-node { border-top: 1px solid var(--border); padding: 7px 0; }
+  .tj-node .nname { color: var(--gold); font-weight: 600; }
+  .tj-node .rep { font-size: 11px; color: #9aa7b8; margin: 2px 0; }
+  .tj-node ul { margin: 0 0 0 16px; padding: 0; color: #c2cdd9; font-size: 12px; }
+
+  .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); }
+  #tj-seeds .seed-row { border-top: 1px solid var(--border); padding: 6px 0; }
+  #tj-seeds .seed-row b { color: var(--cyan); font-size: 14px; }
+  #tj-seeds .seed-row small { color: var(--dim); }
+
+  .find-toolbar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .find-toolbar button { white-space: nowrap; }
+  .find-toolbar select { flex: 1; min-width: 140px; }
+  .find-opts { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 12px; color: var(--dim); }
+  .find-opts b { color: var(--gold); }
+  .find-opts .opt-min input { width: 54px; }
+
+  .stat-rows { border: 1px solid var(--border); border-radius: 6px; background: #131922; max-height: 260px; overflow-y: auto; padding: 4px; }
+  .stat-rows:empty { display: none; }
+  .stat-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-bottom: 1px solid #1b2330; }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .sr-label { flex: 1; font-size: 12px; color: #b9c4d2; }
+  .stat-row .sr-min { font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px; }
+  .stat-row .sr-min input { width: 46px; }
+  .stat-row .sr-del { padding: 1px 7px; color: #c77; border-color: #3a2630; }
+  .stat-row .sr-del:hover { background: #2a1820; }
+
+  .group-title { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 4px; padding: 10px 12px; background: #1a212d; border: 1px solid #222a38; border-radius: 8px; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; user-select: none; transition: background .15s; }
+  .group-title:hover { background: #212a3a; }
+  .group-title .gt-text { color: #e6ebf1; }
+  .group-title .gt-arrow { color: #7f8c9c; font-size: 12px; font-weight: 400; margin-left: 8px; }
+  .group-body { padding-bottom: 8px; }
+  .seed-stats { margin: 4px 0 0 4px; padding-left: 14px; font-size: 11px; color: #a9b6c6; }
+  .seed-stats li { line-height: 1.4; }
+</style>
+</head>
+<body>
+<header>
+  <h1>军团珠宝</h1>
+  <div class="field">
+    <label for="sel-data">数据源</label>
+    <select id="sel-data"></select>
+  </div>
+  <div class="field">
+    <label for="sel-class">职业</label>
+    <select id="sel-class"></select>
+  </div>
+  <div class="field">
+    <label for="sel-asc">升华</label>
+    <select id="sel-asc"></select>
+  </div>
+  <div class="field">
+    <label for="sel-radius">珠宝半径</label>
+    <select id="sel-radius">
+      <option value="960">Small 960</option>
+      <option value="1440">Medium 1440</option>
+      <option value="1800" selected>Large 1800</option>
+      <option value="2400">Very Large 2400</option>
+      <option value="2880">Massive 2880</option>
+    </select>
+  </div>
+  <div class="field"><label><input type="checkbox" id="ck-ring"> 环形</label></div>
+  <div class="field"><label><input type="checkbox" id="ck-cluster"> 显示全部插槽</label></div>
+  <div class="spacer"></div>
+  <button id="btn-fit">全览</button>
+</header>
+
+<nav id="tabs">
+  <a class="tab" href="index.html">天赋模拟</a>
+  <a class="tab active" href="tj.html">军团珠宝</a>
+</nav>
+
+<main>
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+    <div id="tooltip"></div>
+    <div class="loading" id="loading">载入天赋树数据…</div>
+  </div>
+  <aside>
+    <div class="scroll">
+      <div class="sec-title">使用说明<span class="help-tip" tabindex="0">?<span class="tip-pop">用法：在左侧天赋树点击一个紫色珠宝插槽选定珠宝孔；然后在下方选择「军团珠宝类型」与「征服者」，并用「全选（圈内）」或逐个点选受影响的天赋节点；最后在「查看效果 / 搜索种子」中查看或扫描。</span></span></div>
+      <div class="pick-box">
+        <div class="pick-info" id="tj-socket-info"></div>
+        <div class="tj-row"><label>军团珠宝类型</label><select id="tj-jewel"></select></div>
+        <div class="tj-row"><label>征服者</label><select id="tj-conqueror"></select></div>
+        <div class="pick-actions" style="margin-top:8px">
+          <button id="tj-selall">全选（圈内）</button>
+          <button id="tj-clear">全取消</button>
+          <span class="hint" id="tj-selcount"></span>
+        </div>
+      </div>
+
+      <div class="subtabs">
+        <button class="subtab active" data-tab="effect">查看效果</button>
+        <button class="subtab" data-tab="find">搜索种子</button>
+      </div>
+
+      <div id="panel-effect" class="subpanel">
+        <div class="tj-row">
+          <label>种子（编号）</label>
+          <input type="number" id="tj-seed" value="1" min="1" step="1">
+        </div>
+        <div class="hint" id="tj-seed-hint"></div>
+        <div class="tj-actions"><button id="tj-view">查看效果</button></div>
+        <div id="tj-result" class="muted">选择珠宝孔并在圈内点选天赋（或「全选」）后显示效果。</div>
+      </div>
+
+      <div id="panel-find" class="subpanel" style="display:none">
+        <div class="find-toolbar">
+          <button id="tj-stat-all">全选词条</button>
+          <button id="tj-stat-none">清空</button>
+          <select id="tj-stat-add" title="添加词条"><option value="">＋ 添加词条…</option></select>
+        </div>
+        <div class="find-opts">
+          <span>已选 <b id="tj-stat-count">0</b> 条</span>
+          <span class="opt-min">整体最少命中 <input type="number" id="tj-overall-min" value="1" min="0" step="1" style="width:54px"> 条</span>
+        </div>
+        <div id="tj-selected" class="stat-rows"></div>
+        <div class="tj-actions"><button id="tj-find">搜索种子</button></div>
+        <div id="tj-seeds" class="muted">选择珠宝孔、点选圈内天赋，并勾选至少 1 个词条后开始扫描。</div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script src="data/translations.js"></script>
+<script src="data/timeless-data.js"></script>
+<script src="timeless.js"></script>
+<script src="tree-core.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CLASS_NAMES = ["贵族 Scion", "野蛮人 Marauder", "游侠 Ranger", "女巫 Witch",
+                     "决斗者 Duelist", "圣堂武僧 Templar", "暗影 Shadow"];
+  var DATA_FILES = [
+    { file: "poe1-tree-3.29.js", label: "3.29 官方 Lua 生成" },
+    { file: "poe1-tree-3.26.js", label: "3.26 官方 Lua 生成" },
+    { file: "poe1-tree.js", label: "PoB v2.67.2（原抓取，3_29）" }
+  ];
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+  }
+  function cleanNewlines(s) { return String(s).replace(/\\+n/g, " ").replace(/\n/g, " ").replace(/\s+/g, " ").trim(); }
+  function tr(text, table) {
+    if (text == null) return text;
+    var k = String(text).trim(); if (!k) return text;
+    var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR[table]) || {};
+    return dict[cleanNewlines(k)] || cleanNewlines(text);
+  }
+
+  PoTimeless.init(window.POE1_TIMELESS);
+
+  var selData = document.getElementById("sel-data");
+  var selClass = document.getElementById("sel-class");
+  var selAsc = document.getElementById("sel-asc");
+  var tjJewel = document.getElementById("tj-jewel");
+  var tjConq = document.getElementById("tj-conqueror");
+  var tjSeed = document.getElementById("tj-seed");
+  var tjSeedHint = document.getElementById("tj-seed-hint");
+  var tjResult = document.getElementById("tj-result");
+  var tjSeeds = document.getElementById("tj-seeds");
+  var tjSocketInfo = document.getElementById("tj-socket-info");
+  var tjSelCount = document.getElementById("tj-selcount");
+  var tjStatAdd = document.getElementById("tj-stat-add");
+  var tjSelected = document.getElementById("tj-selected");
+  var tjStatCount = document.getElementById("tj-stat-count");
+  var tjOverallMin = document.getElementById("tj-overall-min");
+
+  var tj = { jewel: "1", conqueror: "Xibaqua", seed: 1, socket: null };
+  var NODES = {};
+  var currentTab = "effect";
+  var POSSIBLE = {};          // statId(string) -> count
+  var ALL_STAT_IDS = [];      // 数字 statId 数组（按标签排序）
+  var selectedStats = [];     // [{ id:Number, min:Number }]
+
+  DATA_FILES.forEach(function (d, i) {
+    var op = document.createElement("option"); op.value = String(i); op.textContent = d.label; selData.appendChild(op);
+  });
+
+  var tree = createTreeView({
+    canvas: document.getElementById("canvas"),
+    stage: document.getElementById("stage"),
+    tooltip: document.getElementById("tooltip"),
+    mode: "jewel",
+    onSocketChange: function (id) { onSocketChange(id); },
+    onRingSelect: function (id) { onRingSelect(id); },
+    fillAsc: function (list) {
+      selAsc.innerHTML = '<option value="">无</option>';
+      list.forEach(function (a) {
+        var op = document.createElement("option");
+        op.value = a.name; op.textContent = a.name + (a.isBloodline ? "（血系）" : "");
+        selAsc.appendChild(op);
+      });
+      selAsc.value = "";
+    }
+  });
+
+  tree.load([DATA_FILES[Number(selData.value)]]).then(function () {
+    document.getElementById("loading").style.display = "none";
+    var cs = tree.getClassStarts();
+    selClass.innerHTML = "";
+    cs.forEach(function (c, i) {
+      var op = document.createElement("option"); op.value = String(i);
+      op.textContent = CLASS_NAMES[c.node.classStartIndex] || c.node.name;
+      selClass.appendChild(op);
+    });
+    selClass.value = "0";
+    tree.focusClass();
+    NODES = tree.getNODES();
+    fillJewels();
+    tjFillConquerors();
+  }).catch(function (e) { alert("加载失败: " + e.message); });
+
+  // ---------- 珠宝 UI ----------
+  function fillJewels() {
+    var jewels = PoTimeless.jewels();
+    tjJewel.innerHTML = "";
+    Object.keys(jewels).forEach(function (id) {
+      var o = document.createElement("option"); o.value = id; o.textContent = jewels[id]; tjJewel.appendChild(o);
+    });
+  }
+  function tjFillConquerors() {
+    var cs = PoTimeless.conquerorsOf(Number(tjJewel.value)) || [];
+    tjConq.innerHTML = "";
+    cs.forEach(function (name) {
+      var o = document.createElement("option"); o.value = name; o.textContent = name; tjConq.appendChild(o);
+    });
+    tj.conqueror = tjConq.value;
+    var sr = PoTimeless.seedRangeOf(Number(tjJewel.value));
+    if (sr) {
+      tjSeed.min = sr.min; tjSeed.max = sr.max; tjSeed.step = sr.step;
+      if (Number(tjSeed.value) < sr.min || Number(tjSeed.value) > sr.max) { tjSeed.value = sr.min; }
+      tj.seed = Number(tjSeed.value);
+      tjSeedHint.textContent = "有效范围 " + sr.min + " ~ " + sr.max + (sr.step > 1 ? "（步长 " + sr.step + "）" : "");
+    }
+    fillStats();
+  }
+  function labelOf(id) { return PoTimeless.statLabel(String(id)) || ("Stat #" + id); }
+
+  function fillStats() {
+    POSSIBLE = PoTimeless.possibleStatsOf(Number(tjJewel.value)) || {};
+    ALL_STAT_IDS = Object.keys(POSSIBLE).map(Number).sort(function (a, b) {
+      return labelOf(a).toLowerCase().localeCompare(labelOf(b).toLowerCase());
+    });
+    selectedStats = [];
+    renderStatAdd();
+    renderSelected();
+  }
+
+  function renderStatAdd() {
+    var selSet = Object.create(null);
+    selectedStats.forEach(function (s) { selSet[s.id] = true; });
+    var html = '<option value="">＋ 添加词条…</option>';
+    ALL_STAT_IDS.forEach(function (id) {
+      if (selSet[id]) return;
+      html += '<option value="' + id + '">' + escapeHtml(labelOf(id)) + "</option>";
+    });
+    tjStatAdd.innerHTML = html;
+    tjStatAdd.value = "";
+  }
+
+  function renderSelected() {
+    tjStatCount.textContent = String(selectedStats.length);
+    tjSelected.innerHTML = selectedStats.map(function (s) {
+      return '<div class="stat-row" data-id="' + s.id + '">' +
+        '<input type="checkbox" class="sr-check" checked>' +
+        '<span class="sr-label">' + escapeHtml(labelOf(s.id)) + "</span>" +
+        '<label class="sr-min">min <input type="number" class="sr-min-input" value="' + (s.min || 0) + '" min="0" step="1"></label>' +
+        '<button class="sr-del" title="移除">×</button>' +
+        "</div>";
+    }).join("");
+  }
+
+  function addStat(id) {
+    id = Number(id);
+    if (POSSIBLE[String(id)] == null) return;
+    if (selectedStats.some(function (s) { return s.id === id; })) return;
+    selectedStats.push({ id: id, min: 0 });
+    renderStatAdd(); renderSelected();
+  }
+
+  function removeStat(id) {
+    selectedStats = selectedStats.filter(function (s) { return s.id !== Number(id); });
+    renderStatAdd(); renderSelected();
+  }
+
+  function ringText() {
+    var rng = tree.ringRange(tree.state.radius, tree.state.ring);
+    return tree.state.ring ? (rng.inner + " ~ " + rng.outer) : ("≤ " + rng.outer);
+  }
+
+  function updateSelCount() {
+    var total = tree.getRingKeys().length;
+    var sel = tree.getSelectedInRing().length;
+    tjSelCount.textContent = "圈内 " + total + " · 已选 " + sel;
+  }
+
+  function onSocketChange(id) {
+    tj.socket = id;
+    if (!id || !NODES[id]) {
+      tjSocketInfo.textContent = "";
+    } else {
+      var n = NODES[id];
+      tjSocketInfo.innerHTML = "已选珠宝孔：<b>" + escapeHtml(tr(n.name, "name")) + "</b> #" + id + " · 半径 " + ringText();
+    }
+    updateSelCount();
+    if (tj.seed) tjRender();
+  }
+
+  function onRingSelect(id) {
+    updateSelCount();
+    if (currentTab === "effect") tjRender();
+  }
+
+  function tjRender() {
+    var s = tj.socket;
+    if (!s || !NODES[s]) { tjResult.className = "muted"; tjResult.textContent = "请先在天赋树上点一个珠宝插槽（紫色）。"; return; }
+    var seed = Number(tj.seed);
+    if (!seed) { tjResult.className = "muted"; tjResult.textContent = "请输入种子编号。"; return; }
+    var ringKeys = tree.getRingKeys();
+    if (!ringKeys.length) { tjResult.className = "muted"; tjResult.textContent = "该珠宝孔半径内没有可影响的天赋节点。"; return; }
+    var sel = tree.getSelectedInRing();
+    var useKeys = sel.length ? sel : ringKeys;
+    var jewelType = Number(tj.jewel), conq = tj.conqueror;
+    var list = [];
+    useKeys.forEach(function (gid) {
+      var p = PoTimeless.passiveByGraphId(Number(gid));
+      if (!p) return;
+      var res = PoTimeless.calculate(p.i, seed, jewelType, conq);
+      var node = NODES[gid];
+      var name = node ? escapeHtml(tr(node.name, "name")) : ("#" + gid);
+      var lines = PoTimeless.resultLines(res);
+      list.push({ name: name, replaced: !!res.skill, lines: lines });
+    });
+    if (!list.length) { tjResult.className = "muted"; tjResult.textContent = "该珠宝孔半径内没有可影响的天赋节点。"; return; }
+    var replacedCount = list.filter(function (r) { return r.replaced; }).length;
+    tjResult.className = "";
+    tjResult.innerHTML =
+      '<div class="muted">珠宝孔 ' + escapeHtml(tr(NODES[s].name, "name")) + " #" + s +
+        " · 半径 " + ringText() + " · 圈内 " + ringKeys.length + " 天赋" +
+        (sel.length ? "（已选 " + sel.length + "）" : "") +
+        " · 其中 " + replacedCount + " 个被替换</div>" +
+      list.map(function (r) {
+        return '<div class="tj-node"><div class="nname">' + r.name + "</div>" +
+          '<div class="rep">' + (r.replaced ? "→ 被替换（基石/中点/小点）" : "→ 追加效果") + "</div>" +
+          "<ul>" + r.lines.map(function (l) { return "<li>" + escapeHtml(l) + "</li>"; }).join("") + "</ul></div>";
+      }).join("");
+  }
+
+  function tjShowSeeds(results, selected, overallMin) {
+    if (!results || !Object.keys(results).length) {
+      tjSeeds.className = "muted"; tjSeeds.textContent = "没有种子能在该珠宝孔命中所选词条。"; return;
+    }
+    var entries = [];
+    Object.keys(results).forEach(function (seedStr) {
+      var byNode = results[seedStr];
+      var nodeHits = Object.keys(byNode).length;
+      var matched = [];
+      selected.forEach(function (sel) {
+        var cnt = 0;
+        Object.keys(byNode).forEach(function (pi) {
+          if (byNode[pi][String(sel.id)] != null) cnt++;
+        });
+        if (cnt >= Math.max(1, sel.min)) matched.push({ id: sel.id, count: cnt });
+      });
+      if (matched.length >= overallMin) {
+        entries.push({ seed: Number(seedStr), matched: matched, nodeHits: nodeHits });
+      }
+    });
+    if (!entries.length) {
+      tjSeeds.className = "muted";
+      tjSeeds.textContent = "没有种子满足（整体最少命中 " + overallMin + " 条）的条件。";
+      return;
+    }
+    entries.sort(function (a, b) { return b.nodeHits - a.nodeHits || a.seed - b.seed; });
+    var capped = entries.slice(0, 400);
+    var groups = Object.create(null);
+    capped.forEach(function (e) { (groups[e.nodeHits] = groups[e.nodeHits] || []).push(e); });
+    var counts = Object.keys(groups).map(Number).sort(function (a, b) { return b - a; });
+    var out = [];
+    counts.forEach(function (c) {
+      var list = groups[c];
+      out.push('<div class="group-title" data-group="' + c + '"><span class="gt-text">命中 ' + c + ' 节点 [' + list.length + ' 条]</span><span class="gt-arrow">V</span></div>');
+      out.push('<div class="group-body" data-group="' + c + '" style="display:none">');
+      list.forEach(function (r) {
+        var statsHtml = r.matched.map(function (m) {
+          return "<li>" + escapeHtml(labelOf(m.id)) + " ×" + m.count + "</li>";
+        }).join("");
+        out.push('<div class="seed-row"><button class="tab" style="display:inline-block" data-seed="' + r.seed + '">种子 ' + r.seed + "</button>" +
+          " <small>" + r.matched.length + "/" + selected.length + " 词条 · " + r.nodeHits + " 节点</small>" +
+          '<ul class="seed-stats">' + statsHtml + "</ul></div>");
+      });
+      out.push("</div>");
+    });
+    tjSeeds.className = "";
+    tjSeeds.innerHTML = out.join("") + (entries.length > capped.length
+      ? '<div class="muted">（仅显示前 ' + capped.length + ' 个种子，命中 ' + entries.length + ' 个）</div>' : "");
+  }
+
+  function tjFind() {
+    if (!tj.socket || !NODES[tj.socket]) { alert("请先点击上方按钮，在天赋树上选择一个珠宝孔。"); return; }
+    var keys = tree.getRingKeys();
+    var indices = [];
+    keys.forEach(function (gid) {
+      var p = PoTimeless.passiveByGraphId(Number(gid));
+      if (p) indices.push(p.i);
+    });
+    var selected = selectedStats.map(function (s) { return { id: s.id, min: Math.max(0, s.min | 0) }; });
+    if (!selected.length) { alert("请至少勾选一个词条（可点「全选词条」或用上方下拉添加）。"); return; }
+    var overallMin = Math.max(0, Number(tjOverallMin.value) || 0);
+    var want = selected.map(function (s) { return s.id; });
+    tjSeeds.className = "muted"; tjSeeds.textContent = "扫描中…";
+    setTimeout(function () {
+      var results = PoTimeless.reverseSearch(indices, want, Number(tj.jewel), tj.conqueror, function () { return true; });
+      tjShowSeeds(results, selected, overallMin);
+    }, 30);
+  }
+
+  // ---------- 事件 ----------
+  selData.addEventListener("change", function () {
+    var d = DATA_FILES[Number(selData.value)];
+    tree.load([d]).then(function () {
+      NODES = tree.getNODES();
+      var cs = tree.getClassStarts();
+      selClass.innerHTML = "";
+      cs.forEach(function (c, i) { var op = document.createElement("option"); op.value = String(i); op.textContent = CLASS_NAMES[c.node.classStartIndex] || c.node.name; selClass.appendChild(op); });
+      selClass.value = "0"; tree.focusClass();
+    });
+  });
+  selClass.addEventListener("change", function () { tree.setClassIndex(Number(selClass.value)); tj.socket = null; onSocketChange(null); });
+  selAsc.addEventListener("change", function () { tree.setAsc(selAsc.value); });
+  document.getElementById("sel-radius").addEventListener("change", function (e) { tree.setRadius(Number(e.target.value)); if (tj.seed) tjRender(); });
+  document.getElementById("ck-ring").addEventListener("change", function (e) { tree.setRing(e.target.checked); onSocketChange(tj.socket); });
+  document.getElementById("ck-cluster").addEventListener("change", function (e) { tree.setShowCluster(e.target.checked); });
+  document.getElementById("btn-fit").addEventListener("click", function () { tree.fit(); });
+
+  document.getElementById("tj-selall").addEventListener("click", function () { tree.selectAllInRing(); updateSelCount(); if (currentTab === "effect") tjRender(); });
+  document.getElementById("tj-clear").addEventListener("click", function () { tree.clearRing(); updateSelCount(); if (currentTab === "effect") tjRender(); });
+
+  document.querySelectorAll(".subtab").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".subtab").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      currentTab = btn.getAttribute("data-tab");
+      document.getElementById("panel-effect").style.display = currentTab === "effect" ? "block" : "none";
+      document.getElementById("panel-find").style.display = currentTab === "find" ? "block" : "none";
+      if (currentTab === "effect" && tj.seed) tjRender();
+    });
+  });
+
+  tjJewel.addEventListener("change", function () { tj.jewel = tjJewel.value; tjFillConquerors(); if (tj.seed && currentTab === "effect") tjRender(); });
+  tjConq.addEventListener("change", function () { tj.conqueror = tjConq.value; if (tj.seed && currentTab === "effect") tjRender(); });
+  tjSeed.addEventListener("input", function () { tj.seed = Number(tjSeed.value); if (currentTab === "effect") tjRender(); });
+  document.getElementById("tj-view").addEventListener("click", function () { tjRender(); });
+  document.getElementById("tj-find").addEventListener("click", function () { tjFind(); });
+  tjSeeds.addEventListener("click", function (ev) {
+    var gt = ev.target.closest ? ev.target.closest(".group-title") : null;
+    if (gt) {
+      var g = gt.getAttribute("data-group");
+      var body = tjSeeds.querySelector('.group-body[data-group="' + g + '"]');
+      var arrow = gt.querySelector(".gt-arrow");
+      if (body) {
+        var hidden = body.style.display === "none";
+        body.style.display = hidden ? "" : "none";
+        if (arrow) arrow.textContent = hidden ? "∧" : "V";
+      }
+      return;
+    }
+    var b = ev.target.closest ? ev.target.closest("[data-seed]") : null;
+    if (!b) return;
+    tjSeed.value = b.getAttribute("data-seed");
+    tj.seed = Number(tjSeed.value);
+    tjRender();
+  });
+
+  // ---------- 搜索种子：词条选择 ----------
+  document.getElementById("tj-stat-all").addEventListener("click", function () {
+    selectedStats = ALL_STAT_IDS.map(function (id) { return { id: id, min: 0 }; });
+    renderStatAdd(); renderSelected();
+  });
+  document.getElementById("tj-stat-none").addEventListener("click", function () {
+    selectedStats = []; renderStatAdd(); renderSelected();
+  });
+  tjStatAdd.addEventListener("change", function () {
+    if (!tjStatAdd.value) return;
+    addStat(tjStatAdd.value);
+  });
+  tjSelected.addEventListener("click", function (ev) {
+    var del = ev.target.closest ? ev.target.closest(".sr-del") : null;
+    if (del) removeStat(del.parentNode.getAttribute("data-id"));
+  });
+  tjSelected.addEventListener("change", function (ev) {
+    if (ev.target.classList.contains("sr-check") && !ev.target.checked) {
+      removeStat(ev.target.parentNode.getAttribute("data-id"));
+    }
+  });
+  tjSelected.addEventListener("input", function (ev) {
+    if (!ev.target.classList.contains("sr-min-input")) return;
+    var row = ev.target.parentNode.parentNode;
+    var id = Number(row.getAttribute("data-id"));
+    for (var i = 0; i < selectedStats.length; i++) {
+      if (selectedStats[i].id === id) { selectedStats[i].min = Math.max(0, Number(ev.target.value) | 0); break; }
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

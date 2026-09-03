@@ -3,18 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PoE1 天赋树预览（PoB v2.67.2 / 3.29）</title>
+<title>PoE1 天赋树模拟器</title>
 <style>
   :root {
-    --bg: #07090d;
-    --panel: #0f131a;
-    --border: #1f2733;
-    --ink: #d7dee8;
-    --dim: #8b97a8;
-    --gold: #e8c56a;
-    --cyan: #22d3ee;
-    --green: #34d399;
-    --orange: #fb923c;
+    --bg: #07090d; --panel: #0f131a; --border: #1f2733; --ink: #d7dee8;
+    --dim: #8b97a8; --gold: #e8c56a; --cyan: #22d3ee;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
@@ -40,14 +33,16 @@
   .spacer { flex: 1; }
   .stat { font-size: 12px; color: var(--dim); white-space: nowrap; }
   .stat b { color: var(--gold); font-size: 14px; }
+
+  nav#tabs { flex: none; display: flex; gap: 6px; padding: 6px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .tab { padding: 5px 14px; border-radius: 6px; border: 1px solid var(--border); background: #151b24; color: var(--dim); font-weight: 600; cursor: pointer; font-size: 13px; text-decoration: none; }
+  .tab.active { color: var(--bg); background: var(--gold); border-color: var(--gold); }
+
   main { flex: 1; display: flex; min-height: 0; }
   #stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--bg); }
   canvas { position: absolute; inset: 0; display: block; cursor: grab; touch-action: none; }
   canvas.dragging { cursor: grabbing; }
-  aside {
-    flex: none; width: 330px; background: var(--panel); border-left: 1px solid var(--border);
-    display: flex; flex-direction: column; min-height: 0;
-  }
+  aside { flex: none; width: 330px; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
   aside .block { padding: 10px 12px; border-bottom: 1px solid var(--border); }
   aside .scroll { flex: 1; overflow-y: auto; padding: 10px 12px; }
   .sec-title { font-size: 12px; color: var(--dim); margin-bottom: 6px; letter-spacing: .5px; }
@@ -61,24 +56,16 @@
   .kv span:last-child { color: var(--gold); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--dim); }
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
-  #tooltip {
-    position: absolute; pointer-events: none; z-index: 20; max-width: 320px;
-    background: rgba(10, 14, 20, .96); border: 1px solid #2c3646; border-radius: 8px;
-    padding: 8px 10px; box-shadow: 0 6px 24px rgba(0,0,0,.5); display: none;
-  }
+
+  #tooltip { position: absolute; pointer-events: none; z-index: 20; max-width: 320px; background: rgba(10,14,20,.96); border: 1px solid #2c3646; border-radius: 8px; padding: 8px 10px; box-shadow: 0 6px 24px rgba(0,0,0,.5); display: none; }
   #tooltip .t-name { color: var(--gold); font-weight: 600; margin-bottom: 2px; }
   #tooltip .t-type { color: var(--dim); font-size: 11px; margin-bottom: 6px; }
   #tooltip ul { margin: 0; padding-left: 16px; font-size: 12px; color: #a9b6c6; }
-  .result-item {
-    width: 100%; text-align: left; margin-bottom: 4px; display: block;
-  }
+
+  .result-item { width: 100%; text-align: left; margin-bottom: 4px; display: block; background: #151b24; border: 1px solid var(--border); border-radius: 6px; }
   .result-item small { color: var(--dim); }
-  .overlay-hud {
-    position: absolute; left: 12px; bottom: 12px; z-index: 10;
-    background: rgba(10,14,20,.75); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 10px; pointer-events: none;
-  }
   .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); }
+
   #searchbar { flex: none; border-top: 1px solid var(--border); background: var(--panel); padding: 8px 14px; max-height: 240px; overflow-y: auto; display: flex; gap: 24px; align-items: flex-start; }
   #searchbar .search-section { flex: 1; min-width: 260px; }
   #searchbar .legend-section { flex: none; max-width: 540px; }
@@ -88,7 +75,6 @@
 </style>
 </head>
 <body>
-
 <header>
   <h1>PoE1 天赋树</h1>
   <div class="field">
@@ -113,14 +99,9 @@
       <option value="2880">Massive 2880</option>
     </select>
   </div>
-  <div class="field">
-    <label><input type="checkbox" id="ck-ring"> 环形</label>
-  </div>
-  <div class="field">
-    <label><input type="checkbox" id="ck-cluster"> 显示全部珠宝插槽</label>
-  </div>
+  <div class="field"><label><input type="checkbox" id="ck-ring"> 环形</label></div>
+  <div class="field"><label><input type="checkbox" id="ck-cluster"> 显示全部珠宝插槽</label></div>
   <div class="spacer"></div>
-  <div class="stat">数据 <b id="data-ver">-</b></div>
   <div class="stat">已用点数 <b id="stat-points">0</b></div>
   <div class="stat">插槽 <b id="stat-sockets">0</b></div>
   <div class="stat">升华点 <b id="stat-asc">0</b></div>
@@ -128,20 +109,24 @@
   <button id="btn-fit">全览</button>
 </header>
 
+<nav id="tabs">
+  <a class="tab active" href="index.html">天赋模拟</a>
+  <a class="tab" href="tj.html">军团珠宝</a>
+</nav>
+
 <main>
   <div id="stage">
     <canvas id="canvas"></canvas>
     <div id="tooltip"></div>
     <div class="loading" id="loading">载入天赋树数据…</div>
   </div>
-
   <aside>
     <div class="block" id="jewel-block" style="display:none">
       <div class="sec-title">珠宝插槽影响范围</div>
       <div class="kv"><span>插槽</span><span id="jewel-name">-</span></div>
       <div class="kv"><span>半径</span><span id="jewel-radius">-</span></div>
       <div class="kv"><span>范围内可影响节点</span><span id="jewel-count">-</span></div>
-      <div class="hint" style="margin-top:4px">规则同 PoB / pobzh 军团珠宝计算器：排除升华、专精、插槽、职业起点与未放置条目；定位代理节点只计数不列出。已分配的天赋会排在前面。</div>
+      <div class="hint" style="margin-top:4px">规则同 PoB / pobzh：排除升华、专精、插槽、职业起点与未放置条目；定位代理节点只计数不列出。</div>
       <div id="jewel-detail" style="margin-top:6px;max-height:150px;overflow-y:auto"></div>
     </div>
     <div class="scroll" id="detail">
@@ -175,889 +160,127 @@
 </div>
 
 <script src="data/translations.js"></script>
+<script src="tree-core.js"></script>
 <script>
 (function () {
   "use strict";
-
-  // 数据在启动时由 loadTreeFile 加载并写入这些变量（可被数据源切换重赋值）
-  var TREE, NODES, GROUPS, ORBIT_RADII;
-
   var CLASS_NAMES = ["贵族 Scion", "野蛮人 Marauder", "游侠 Ranger", "女巫 Witch",
                      "决斗者 Duelist", "圣堂武僧 Templar", "暗影 Shadow"];
-  var NODE_R = { normal: 30, notable: 42, keystone: 54, mastery: 40, socket: 34, classStart: 46, ascendancy: 40 };
-  var NODE_FILL = {
-    normal: "#566274", notable: "#806b3b", keystone: "#8a5d20", mastery: "#5d4b86",
-    socket: "#426b80", ascendancy: "#793b53", classStart: "#87909c"
-  };
-  var TYPE_ZH = {
-    normal: "小点", notable: "中点", keystone: "基石", mastery: "专精",
-    socket: "珠宝插槽", classStart: "职业起点", ascendancy: "升华"
-  };
-
-  // ---------- 精灵图：本地优先，失败回退官方 CDN ----------
-  var SHEET_FILES = ["skills-3.jpg", "skills-disabled-3.jpg", "mastery-3.png",
-                     "mastery-active-selected-3.png", "mastery-disabled-3.png"];
-  var CDN = "https://web.poecdn.com/image/passive-skill/";
-  var sheets = SHEET_FILES.map(function (file) {
-    var img = new Image();
-    img.onload = function () { draw(); };
-    img.onerror = function () { if (img.src.indexOf(CDN) < 0) img.src = CDN + file; };
-    img.src = "assets/" + file;
-    return img;
-  });
-
-  // ---------- 职业 / 升华（数据源切换时重算） ----------
-  var classStarts = [], ascStarts = [], ascByClass = {};
-  function computeStarts() {
-    classStarts = []; ascStarts = []; ascByClass = {};
-    Object.keys(NODES).forEach(function (id) {
-      var n = NODES[id];
-      if (n.type === "classStart") classStarts.push({ id: id, node: n });
-      if (n.isAscendancyStart) ascStarts.push({ id: id, node: n });
-    });
-    classStarts.sort(function (a, b) { return a.node.classStartIndex - b.node.classStartIndex; });
-
-    // 每个职业起点的 out 直接连到该职业的升华起点（PoB 数据方向：classStart -> ascendancyStart）
-    classStarts.forEach(function (c) {
-      var ci = c.node.classStartIndex;
-      (c.node.out || []).forEach(function (o) {
-        var an = NODES[o];
-        if (an && an.isAscendancyStart) {
-          (ascByClass[ci] = ascByClass[ci] || []).push({
-            id: o, name: an.ascendancy, isBloodline: !!an.isBloodline
-          });
-        }
-      });
-    });
-    Object.keys(ascByClass).forEach(function (ci) {
-      ascByClass[ci].sort(function (x, y) { return (x.isBloodline ? 1 : 0) - (y.isBloodline ? 1 : 0) || x.name.localeCompare(y.name); });
-    });
-  }
-
-  // ---------- 状态 ----------
-  var state = {
-    classIndex: 0,
-    asc: "",
-    showCluster: false,
-    radius: 1800,
-    ring: false,
-    allocated: Object.create(null),   // id -> true
-    selectedSocket: null,
-    selectedNode: null,
-    hover: null,
-    scale: 1, panX: 0, panY: 0,
-    view: null                        // {nodes, edges, bounds, center, fit}
-  };
-
-  // 当前职业对应的所有升华名集合（用于决定哪些升华节点渲染在树上）
-  function classAscSet() {
-    var cs = classStarts[state.classIndex];
-    if (!cs) return null;
-    var list = ascByClass[cs.node.classStartIndex] || [];
-    var s = {};
-    list.forEach(function (a) { s[a.name] = true; });
-    return s;
-  }
-
-  // ---------- 构建渲染集合 ----------
-  function isVisible(id, n) {
-    // group < 0 的条目在 PoB 数据里未放置到树上（坐标均为 0,0），不渲染也不参与计算
-    if (n.group === undefined || n.group < 0) return false;
-    if (n.isProxy) return false;
-    // root 是 PoB 内部虚拟枢纽（连接各职业起点），不应渲染为节点/连线
-    if (id === "root") return false;
-    if (n.expansionJewel && n.expansionJewel.size !== 2 && !state.showCluster) return false;
-    if (n.type === "ascendancy" || n.ascendancy) {
-      // 所有升华天赋始终渲染在树上（不依赖选择）
-      return true;
-    }
-    return true;
-  }
-
-  function buildView() {
-    var list = [], ids = {};
-    Object.keys(NODES).forEach(function (id) {
-      var n = NODES[id];
-      if (!isVisible(id, n)) return;
-      var v = { id: id, x: n.x, y: n.y, type: n.type, name: n.name, sp: n.sprite || null, isp: n.inactiveSprite || null };
-      list.push(v); ids[id] = true;
-    });
-
-    var edges = [], seen = {};
-    list.forEach(function (v) {
-      var n = NODES[v.id], out = n.out || [];
-      for (var i = 0; i < out.length; i++) {
-        var b = String(out[i]);
-        if (!ids[b] || !NODES[b]) continue;
-        var key = v.id < b ? v.id + "-" + b : b + "-" + v.id;
-        if (seen[key]) continue;
-        seen[key] = true;
-        var m = NODES[b];
-        var sameOrbit = n.group !== undefined && n.group >= 0 && n.group === m.group &&
-                        n.orbit !== undefined && n.orbit === m.orbit && n.orbit > 0;
-        var e = { a: v.id, b: b, ax: v.x, ay: v.y, bx: m.x, by: m.y };
-        if (sameOrbit) {
-          var g = GROUPS[String(n.group)];
-          if (g) { e.arcRadius = ORBIT_RADII[n.orbit]; e.cx = g.x; e.cy = g.y; }
-        }
-        edges.push(e);
-      }
-    });
-
-    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    list.forEach(function (v) {
-      if (v.x < minX) minX = v.x; if (v.x > maxX) maxX = v.x;
-      if (v.y < minY) minY = v.y; if (v.y > maxY) maxY = v.y;
-    });
-    var pad = 400;
-    minX -= pad; minY -= pad; maxX += pad; maxY += pad;
-
-    state.view = {
-      nodes: list, edges: edges,
-      bounds: { minX: minX, minY: minY, maxX: maxX, maxY: maxY },
-      center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2 },
-      worldW: maxX - minX, worldH: maxY - minY
-    };
-  }
-
-  // ---------- 分配 ----------
-  function adjacency() {
-    if (!state._adj || state._adjKey !== state.asc + "|" + state.showCluster) {
-      var adj = {};
-      state.view.edges.forEach(function (e) {
-        (adj[e.a] = adj[e.a] || []).push(e.b);
-        (adj[e.b] = adj[e.b] || []).push(e.a);
-      });
-      state._adj = adj;
-      state._adjKey = state.asc + "|" + state.showCluster;
-    }
-    return state._adj;
-  }
-
-  function startId() {
-    var cs = classStarts[state.classIndex];
-    return cs ? cs.id : null;
-  }
-
-  function resetAllocated() {
-    state.allocated = Object.create(null);
-    var s = startId();
-    if (s) state.allocated[s] = true;
-  }
-
-  // 是否已分配了除起点之外的天赋（用于切换职业/升华前确认是否清空）
-  function hasBuild() {
-    var keys = Object.keys(state.allocated);
-    if (keys.length === 0) return false;
-    if (keys.length === 1) return keys[0] !== startId();
-    return true;
-  }
-
-  /** 从起点 BFS，剔除不再连通的已分配节点 */
-  function prune() {
-    var adj = adjacency(), s = startId();
-    var reach = Object.create(null), queue = [s];
-    reach[s] = true;
-    while (queue.length) {
-      var cur = queue.pop();
-      (adj[cur] || []).forEach(function (nb) {
-        if (state.allocated[nb] && !reach[nb]) { reach[nb] = true; queue.push(nb); }
-      });
-    }
-    Object.keys(state.allocated).forEach(function (id) {
-      if (!reach[id]) delete state.allocated[id];
-    });
-  }
-
-  function canAllocate(id) {
-    if (state.allocated[id]) return false;
-    var adj = adjacency();
-    return (adj[id] || []).some(function (nb) { return !!state.allocated[nb]; });
-  }
-
-  // ---------- 坐标变换 ----------
-  var canvas = document.getElementById("canvas");
-  var ctx = canvas.getContext("2d");
-  var stage = document.getElementById("stage");
-  var size = { w: 1, h: 1 };
-
-  function fitScale() {
-    var v = state.view;
-    return Math.min(size.w / v.worldW, size.h / v.worldH);
-  }
-  function scaleNow() { return fitScale() * state.scale; }
-  function toScreen(x, y) {
-    var v = state.view, B = scaleNow();
-    return { x: size.w / 2 + state.panX + (x - v.center.x) * B,
-             y: size.h / 2 + state.panY + (y - v.center.y) * B };
-  }
-  function toWorld(sx, sy) {
-    var v = state.view, B = scaleNow();
-    return { x: (sx - size.w / 2 - state.panX) / B + v.center.x,
-             y: (sy - size.h / 2 - state.panY) / B + v.center.y };
-  }
-
-  function visibleBounds() {
-    var a = toWorld(0, 0), b = toWorld(size.w, size.h), m = 120;
-    return { minX: a.x - m, minY: a.y - m, maxX: b.x + m, maxY: b.y + m };
-  }
-
-  // ---------- 绘制 ----------
-  function nodeRadius(type) { return NODE_R[type] || 30; }
-
-  function draw() {
-    if (!state.view) return;
-    var v = state.view, B = scaleNow();
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    if (canvas.width !== Math.round(size.w * dpr) || canvas.height !== Math.round(size.h * dpr)) {
-      canvas.width = Math.round(size.w * dpr);
-      canvas.height = Math.round(size.h * dpr);
-    }
-    canvas.style.width = size.w + "px";
-    canvas.style.height = size.h + "px";
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#07090d";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    var t = toScreen(0, 0);
-    ctx.setTransform(dpr * B, 0, 0, dpr * B, dpr * t.x, dpr * t.y);
-    ctx.lineCap = "round";
-
-    var vb = visibleBounds();
-    var inView = function (x, y) { return x >= vb.minX && x <= vb.maxX && y >= vb.minY && y <= vb.maxY; };
-
-    // 1. 珠宝半径
-    if (state.selectedSocket && NODES[state.selectedSocket]) {
-      var s = NODES[state.selectedSocket];
-      var ring = ringRange(state.radius, state.ring);
-      var outer = ring.outer, inner = ring.inner;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, outer, 0, Math.PI * 2);
-      if (inner > 0) ctx.arc(s.x, s.y, inner, 0, Math.PI * 2, true);
-      ctx.fillStyle = "rgba(242,184,75,.12)";
-      ctx.fill("evenodd");
-      ctx.strokeStyle = "#f2b84b";
-      ctx.lineWidth = Math.max(16, 1.5 / B);
-      ctx.setLineDash([38, 28]);
-      ctx.beginPath(); ctx.arc(s.x, s.y, outer, 0, Math.PI * 2); ctx.stroke();
-      if (inner > 0) { ctx.beginPath(); ctx.arc(s.x, s.y, inner, 0, Math.PI * 2); ctx.stroke(); }
-      ctx.restore();
-    }
-
-    // 2. 连线
-    var adj = adjacency();
-    for (var i = 0; i < v.edges.length; i++) {
-      var e = v.edges[i];
-      if (!inView(e.ax, e.ay) && !inView(e.bx, e.by)) continue;
-      // 升华天赋与起始点（主树）之间不画线：跳过一端为升华、另一端非升华的连线
-      var na = NODES[e.a], nb = NODES[e.b];
-      var aAsc = na.type === "ascendancy" || na.ascendancy;
-      var bAsc = nb.type === "ascendancy" || nb.ascendancy;
-      if (aAsc !== bAsc) continue;
-      var on = !!state.allocated[e.a] && !!state.allocated[e.b];
-      ctx.beginPath();
-      ctx.strokeStyle = on ? "#e8c56a" : "#667386";
-      ctx.globalAlpha = on ? 0.95 : 0.82;
-      ctx.lineWidth = Math.max(on ? 20 : 12, (on ? 2.4 : 1.5) / B);
-      if (e.arcRadius !== undefined) {
-        var a1 = Math.atan2(e.ay - e.cy, e.ax - e.cx);
-        var a2 = Math.atan2(e.by - e.cy, e.bx - e.cx) - a1;
-        while (a2 <= -Math.PI) a2 += Math.PI * 2;
-        while (a2 > Math.PI) a2 -= Math.PI * 2;
-        ctx.arc(e.cx, e.cy, e.arcRadius, a1, a1 + a2, a2 < 0);
-      } else {
-        ctx.moveTo(e.ax, e.ay); ctx.lineTo(e.bx, e.by);
-      }
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-
-    // 3. 节点
-    var canSet = Object.create(null);
-    Object.keys(state.allocated).forEach(function (id) {
-      (adj[id] || []).forEach(function (nb) { if (!state.allocated[nb]) canSet[nb] = true; });
-    });
-
-    for (var j = 0; j < v.nodes.length; j++) {
-      var n = v.nodes[j];
-      if (!inView(n.x, n.y)) continue;
-      var node = NODES[n.id];
-      var isAsc = node.type === "ascendancy" || node.ascendancy;
-      var ascDim = state.asc && isAsc && node.ascendancy !== state.asc;
-      var R = nodeRadius(n.type);
-      var alloc = !!state.allocated[n.id];
-      var sp = alloc ? (n.sp || n.isp) : (n.isp || n.sp);
-      ctx.globalAlpha = ascDim ? 0.4 : 1;
-
-      // 可点提示圈
-      if (!alloc && canSet[n.id]) {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, R + 18, 0, Math.PI * 2);
-        ctx.strokeStyle = "#67e8f9";
-        ctx.lineWidth = Math.max(8, 1.5 / B);
-        ctx.stroke();
-      }
-      // 命中高亮
-      if (state.selectedNode === n.id || state.hover === n.id) {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, R + (state.selectedNode === n.id ? 26 : 16), 0, Math.PI * 2);
-        ctx.strokeStyle = state.selectedNode === n.id ? "#22d3ee" : "#9aa7b8";
-        ctx.lineWidth = Math.max(10, 2 / B);
-        ctx.stroke();
-      }
-
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
-      var fillColor;
-      if (alloc) fillColor = (n.type === "normal" ? "#8a6f2e" : NODE_FILL[n.type] || "#566274");
-      else if (state.asc && isAsc && node.ascendancy === state.asc) fillColor = "#9a6b2f";
-      else fillColor = NODE_FILL[n.type] || "#566274";
-      ctx.fillStyle = fillColor;
-      ctx.fill();
-
-      var img = sp ? sheets[sp.sheet] : null;
-      if (img && img.complete && img.naturalWidth > 0 && n.type !== "socket") {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, Math.max(8, R - 2), 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(img, sp.x, sp.y, sp.w, sp.h, n.x - R, n.y - R, R * 2, R * 2);
-        ctx.restore();
-      }
-
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, R, 0, Math.PI * 2);
-      if (state.asc && isAsc && node.ascendancy === state.asc) {
-        ctx.strokeStyle = "#f5c542";
-        ctx.lineWidth = Math.max(6, 2 / B);
-      } else {
-        ctx.strokeStyle = alloc ? "#fff1bf" : (n.type === "classStart" ? "#f8fafc" : "#9aa7b8");
-        ctx.lineWidth = Math.max(alloc ? 5 : 2.5, 1 / B);
-      }
-      ctx.stroke();
-      // 已分配天赋：外圈金色高亮，便于看清已点亮的多条路径
-      if (alloc) {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, R + 6, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(232,197,106,.55)";
-        ctx.lineWidth = Math.max(4, 1 / B);
-        ctx.stroke();
-      }
-
-      if (n.type === "socket") {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, Math.max(8, R * 0.38), 0, Math.PI * 2);
-        ctx.fillStyle = state.selectedSocket === n.id ? "#c084fc" : "#111827";
-        ctx.fill();
-        ctx.strokeStyle = state.selectedSocket === n.id ? "#f3e8ff" : "#7dd3fc";
-        ctx.lineWidth = Math.max(5, 1.5 / B);
-        ctx.stroke();
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  /**
-   * 珠宝影响半径。实心：0 ~ radius；环形：radius ~ 下一档外沿。
-   * 半径档位取自 PoB：Small 960 / Medium 1440 / Large 1800 / Very Large 2400 / Massive 2880。
-   */
-  var RING_OUTER = { 960: 1320, 1440: 1680, 1800: 2040, 2400: 2880, 2880: 3360 };
-  function ringRange(radius, ring) {
-    return ring ? { inner: radius, outer: RING_OUTER[radius] || radius + 480 }
-                : { inner: 0, outer: radius };
-  }
-
-  // ---------- 尺寸 ----------
-  function resize() {
-    size.w = Math.max(1, stage.clientWidth);
-    size.h = Math.max(1, stage.clientHeight);
-    draw();
-  }
-  window.addEventListener("resize", resize);
-  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
-
-  // ---------- 交互 ----------
-  canvas.addEventListener("wheel", function (ev) {
-    ev.preventDefault();
-    var r = canvas.getBoundingClientRect();
-    var mx = ev.clientX - r.left, my = ev.clientY - r.top;
-    var f = ev.deltaY < 0 ? 1.15 : 1 / 1.15;
-    var next = Math.min(8, Math.max(0.6, state.scale * f));
-    var k = next / state.scale;
-    state.panX = mx - size.w / 2 - (mx - size.w / 2 - state.panX) * k;
-    state.panY = my - size.h / 2 - (my - size.h / 2 - state.panY) * k;
-    state.scale = next;
-    draw();
-  }, { passive: false });
-
-  var drag = null;
-  canvas.addEventListener("pointerdown", function (ev) {
-    if (ev.button !== 0) return;
-    canvas.setPointerCapture(ev.pointerId);
-    drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, px: state.panX, py: state.panY, moved: false };
-    canvas.classList.add("dragging");
-  });
-  canvas.addEventListener("pointermove", function (ev) {
-    if (drag && drag.id === ev.pointerId) {
-      if (Math.abs(ev.clientX - drag.x) > 4 || Math.abs(ev.clientY - drag.y) > 4) drag.moved = true;
-      if (drag.moved) {
-        state.panX = drag.px + ev.clientX - drag.x;
-        state.panY = drag.py + ev.clientY - drag.y;
-        draw();
-      }
-      return;
-    }
-    var hit = hitTest(ev.clientX, ev.clientY);
-    var id = hit ? hit.id : null;
-    if (id !== state.hover) { state.hover = id; draw(); }
-    showTooltip(ev.clientX, ev.clientY, id);
-  });
-  canvas.addEventListener("pointerup", function (ev) {
-    canvas.classList.remove("dragging");
-    if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId);
-    var d = drag; drag = null;
-    if (!d || d.moved) return;
-    var hit = hitTest(ev.clientX, ev.clientY);
-    if (hit) onNodeClick(hit.id);
-  });
-  canvas.addEventListener("pointerleave", function () {
-    state.hover = null; hideTooltip(); draw();
-  });
-
-  function hitTest(clientX, clientY) {
-    var r = canvas.getBoundingClientRect();
-    var w = toWorld(clientX - r.left, clientY - r.top);
-    var best = null, bestD = Infinity;
-    var v = state.view;
-    for (var i = 0; i < v.nodes.length; i++) {
-      var n = v.nodes[i];
-      var R = nodeRadius(n.type) + 6;
-      var dx = n.x - w.x, dy = n.y - w.y;
-      var d = dx * dx + dy * dy;
-      if (d <= R * R && d < bestD) { bestD = d; best = n; }
-    }
-    return best;
-  }
-
-  function onNodeClick(id) {
-    var n = NODES[id];
-    state.selectedNode = id;
-    if (n.type === "socket") {
-      state.selectedSocket = state.selectedSocket === id ? null : id;
-      renderJewel();
-    } else if (state.allocated[id]) {
-      if (id !== startId()) { delete state.allocated[id]; prune(); }
-    } else if (canAllocate(id)) {
-      state.allocated[id] = true;
-    }
-    renderDetail(id);
-    renderStats();
-    draw();
-  }
-
-  // ---------- 面板 ----------
-  var tooltip = document.getElementById("tooltip");
-
-  function statsHtml(n) {
-    var stats = n.stats || [];
-    if (n.type === "mastery" && n.masteryEffects && n.masteryEffects.length) {
-      stats = n.masteryEffects.map(function (e) { return (e.stats || []).join(" / "); });
-    }
-    var html = "";
-    if (stats.length) {
-      html += "<ul>" + stats.slice(0, 12).map(function (s) { return "<li>" + escapeHtml(tr(s, "stat")) + "</li>"; }).join("") + "</ul>";
-    }
-    var rt = n.reminderText || [];
-    if (rt.length) {
-      html += '<div class="reminder">' + rt.map(function (s) { return escapeHtml(tr(s, "reminder")); }).join("<br>") + "</div>";
-    }
-    return html;
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-
-  // 把字面 \\n (运行时 2 字符: 反斜杠 + n) 和真实 \n 都统一成一个空格，
-  // 多行词缀(如 Ghost Reaver 的 3 行效果)在匹配/显示时都当成单行空格分隔。
-  function cleanNewlines(s) {
-    return String(s)
-      .replace(/\\+n/g, " ") // 1+ 个反斜杠 + n（老抓取数据是 \\\\n，lua 版是 \\n）
-      .replace(/\n/g, " ")   // 真实换行
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  // 英文 -> 中文 查表翻译；查不到则原样返回（字典来自 data/translations.js 的 window.POE1_TREE_TR）
-  function tr(text, table) {
-    if (text == null) return text;
-    var k = String(text).trim();
-    if (!k) return text;
-    var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR[table]) || {};
-    var mk = cleanNewlines(k); // 匹配前先把 \\n / \n 换成空格
-    if (dict[mk]) return cleanNewlines(dict[mk]);
-    // 占位回退：stat 表含官方 {0} 占位翻译（如 "{0}% increased Damage..."），
-    // 把输入里的具体数值归一为 # 后再匹配，并把实际数值填回译文 {0}/{1}...
-    if (table === "stat") {
-      var nk = normKey(mk);
-      var dk = normIndex()[nk];
-      if (dk) {
-        var val = dict[dk];
-        var nums = mk.match(/[+-]?\d+(?:\.\d+)?/g) || [];
-        var out = val.replace(/\{(\d+)\}/g, function (_, n) {
-          return nums[+n] != null ? nums[+n] : "{" + n + "}";
-        });
-        return cleanNewlines(out);
-      }
-    }
-    // 多段词缀：数据里常用 " / " 或换行把多条效果拼成一条（如 "+1 to Level... / Lose 10%..."），
-    // 而字典是逐条分开的。整条没匹配上就按分隔符拆开逐段翻译再拼回（必须整条优先，
-    // 否则 Ghost Reaver 那种字典本就是三行合一的整条会先被拆坏）。
-    var segs = mk.split(/\s*\/\s*|\n/);
-    if (segs.length > 1) {
-      var joined = segs.map(function (s) { return tr(s, table); }).join(" / ");
-      if (joined !== mk) return joined;
-    }
-    return cleanNewlines(text);
-  }
-
-  // 把字符串里的数值(含正负号/小数)和 {n} 占位符都压成 #, 用于模糊匹配
-  function normKey(s) {
-    return cleanNewlines(s)
-      .replace(/\{\d+\}/g, "#")            // 已有的 {0} 占位符 -> #
-      .replace(/[+-]?\d+(?:\.\d+)?/g, "#"); // 裸数字 -> #
-  }
-
-  // 懒构建 stat 表"归一化键 -> 原键"索引
-  var _normCache = null;
-  function normIndex() {
-    if (_normCache) return _normCache;
-    var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR.stat) || {};
-    var seen = {}; // nk -> { dk, ph }
-    for (var dk in dict) {
-      var nk = normKey(dk);
-      var ph = dk.indexOf("{") >= 0;
-      if (!seen[nk]) {
-        seen[nk] = { dk: dk, ph: ph };
-      } else if (ph && !seen[nk].ph) {
-        seen[nk] = { dk: dk, ph: true }; // 同名归一键优先选含占位符的条目(可填充数值)
-      }
-    }
-    var idx = {};
-    for (var k in seen) idx[k] = seen[k].dk;
-    _normCache = idx;
-    return idx;
-  }
-
-  function showTooltip(clientX, clientY, id) {
-    if (!id) { hideTooltip(); return; }
-    var n = NODES[id];
-    tooltip.innerHTML = '<div class="t-name">' + escapeHtml(tr(n.name, "name")) + "</div>" +
-      '<div class="t-type">' + (TYPE_ZH[n.type] || n.type) + (n.ascendancy ? " · " + escapeHtml(tr(n.ascendancy, "name")) : "") + "</div>" +
-      statsHtml(n);
-    tooltip.style.display = "block";
-    var r = stage.getBoundingClientRect();
-    var x = clientX - r.left + 16, y = clientY - r.top + 16;
-    if (x + tooltip.offsetWidth > r.width) x = clientX - r.left - tooltip.offsetWidth - 16;
-    if (y + tooltip.offsetHeight > r.height) y = r.height - tooltip.offsetHeight - 8;
-    tooltip.style.left = x + "px";
-    tooltip.style.top = y + "px";
-  }
-  function hideTooltip() { tooltip.style.display = "none"; }
-
-  var detail = document.getElementById("detail");
-  function renderDetail(id) {
-    if (!id || !NODES[id]) {
-      detail.innerHTML = '<div class="hint">在树上悬停查看天赋，点击可分配（需与起点连通）。</div>';
-      return;
-    }
-    var n = NODES[id];
-    var alloc = !!state.allocated[id];
-    detail.innerHTML =
-      '<div class="node-name">' + escapeHtml(tr(n.name, "name")) + "</div>" +
-      '<div class="node-type">' + (TYPE_ZH[n.type] || n.type) +
-        (n.ascendancy ? " · " + escapeHtml(n.ascendancy) : "") +
-        (alloc ? " · <span style='color:#e8c56a'>已分配</span>" : (canAllocate(id) ? " · <span style='color:#67e8f9'>可分配</span>" : "")) +
-      "</div>" +
-      statsHtml(n) +
-      '<div class="hint" style="margin-top:8px">节点 ID ' + id + (n.group !== undefined ? " · group " + n.group + " · orbit " + n.orbit : "") + "</div>";
-  }
-
-  function renderStats() {
-    var pts = 0, socks = 0, asc = 0;
-    Object.keys(state.allocated).forEach(function (id) {
-      var n = NODES[id];
-      if (n.type === "classStart") return;
-      pts++;
-      if (n.type === "socket") socks++;
-      if (n.type === "ascendancy") asc++;
-    });
-    document.getElementById("stat-points").textContent = pts;
-    document.getElementById("stat-sockets").textContent = socks;
-    document.getElementById("stat-asc").textContent = asc;
-  }
-
-  var jewelBlock = document.getElementById("jewel-block");
-  function renderJewel() {
-    var id = state.selectedSocket;
-    if (!id) { jewelBlock.style.display = "none"; return; }
-    var s = NODES[id];
-    var rng = ringRange(state.radius, state.ring);
-    var outer = rng.outer, inner = rng.inner;
-    // 统计规则与 PoB / pobzh 军团珠宝计算器一致：
-    // 排除升华 / 专精 / 插槽 / 职业起点 / 未放置条目(group<0)，计入定位代理(Position Proxy)
-    var list = [], proxyCount = 0;
-    Object.keys(NODES).forEach(function (k) {
-      var n = NODES[k];
-      if (n.group === undefined || n.group < 0) return;
-      if (n.ascendancy || n.type === "ascendancy" || n.type === "mastery" ||
-          n.type === "socket" || n.type === "classStart") return;
-      var dx = n.x - s.x, dy = n.y - s.y, d2 = dx * dx + dy * dy;
-      if (d2 >= outer * outer || (inner > 0 && d2 < inner * inner)) return;
-      if (n.isProxy) { proxyCount++; return; }
-      list.push({ id: k, name: n.name, type: n.type, alloc: !!state.allocated[k] });
-    });
-    list.sort(function (a, b) { return Number(b.alloc) - Number(a.alloc) || a.name.localeCompare(b.name); });
-
-    jewelBlock.style.display = "block";
-    document.getElementById("jewel-name").textContent = (tr(s.name, "name") || "插槽") + " #" + id;
-    document.getElementById("jewel-radius").textContent = state.ring ? inner + " ~ " + outer : "≤ " + outer;
-    document.getElementById("jewel-count").textContent =
-      list.length + " 天赋（含定位代理共 " + (list.length + proxyCount) + "，已分配 " +
-      list.filter(function (x) { return x.alloc; }).length + "）";
-    document.getElementById("jewel-detail").innerHTML = list.slice(0, 60).map(function (x) {
-      return '<button class="result-item" data-node="' + x.id + '">' +
-        escapeHtml(tr(x.name, "name")) + (x.alloc ? ' <span style="color:#e8c56a">·已分配</span>' : "") +
-        "<br><small>" + (TYPE_ZH[x.type] || x.type) + " · " + x.id + "</small></button>";
-    }).join("");
-  }
-
-  // ---------- 搜索 ----------
-  var searchInput = document.getElementById("search");
-  var searchResult = document.getElementById("search-result");
-  searchInput.addEventListener("input", function () {
-    var q = searchInput.value.trim().toLowerCase();
-    if (q.length < 2) { searchResult.innerHTML = ""; return; }
-    var hits = [];
-    Object.keys(NODES).forEach(function (id) {
-      var n = NODES[id];
-      if (!isVisible(id, n)) return;
-      var nameEn = (n.name || "");
-      var nameZh = tr(nameEn, "name");
-      if (nameEn.toLowerCase().indexOf(q) >= 0 || nameZh.toLowerCase().indexOf(q) >= 0) { hits.push({ id: id, n: n }); return; }
-      var statsEn = (n.stats || []).join(" ");
-      var statsZh = (n.stats || []).map(function (s) { return tr(s, "stat"); }).join(" ");
-      var hay = (statsEn + " " + statsZh).toLowerCase();
-      if (hay.indexOf(q) >= 0) hits.push({ id: id, n: n });
-      if (hits.length > 200) return;
-    });
-    searchResult.innerHTML = hits.slice(0, 40).map(function (h) {
-      return '<button class="result-item" data-node="' + h.id + '">' + escapeHtml(tr(h.n.name, "name") || h.id) +
-        "<br><small>" + (TYPE_ZH[h.n.type] || h.n.type) + " · " + h.id + "</small></button>";
-    }).join("") || '<div class="hint">无匹配</div>';
-  });
-
-  document.addEventListener("click", function (ev) {
-    var btn = ev.target.closest ? ev.target.closest("[data-node]") : null;
-    if (!btn) return;
-    focusNode(btn.getAttribute("data-node"));
-  });
-
-  function focusNode(id) {
-    var n = NODES[id];
-    if (!n) return;
-    state.selectedNode = id;
-    centerView(n.x, n.y, 3);
-    renderDetail(id);
-    draw();
-  }
-
-  // 以 (cx,cy) 为屏幕中心、给定缩放比例定位视口
-  function centerView(cx, cy, scale) {
-    state.scale = scale;
-    var B = fitScale() * scale;
-    state.panX = -(cx - state.view.center.x) * B;
-    state.panY = -(cy - state.view.center.y) * B;
-    draw();
-  }
-
-  // 选中职业后，把视口聚焦到该职业起点及其升华区
-  function focusClass() {
-    var cs = classStarts[state.classIndex];
-    if (!cs) return;
-    var n = NODES[cs.id];
-    centerView(n.x, n.y, 2.0);
-  }
-
-  // 选中华升后，把视口聚焦到该升华节点所在的局部区域
-  function focusAscendancy() {
-    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, found = false;
-    state.view.nodes.forEach(function (v) {
-      var n = NODES[v.id];
-      if (n.type === "ascendancy" || n.ascendancy) {
-        found = true;
-        if (v.x < minX) minX = v.x; if (v.x > maxX) maxX = v.x;
-        if (v.y < minY) minY = v.y; if (v.y > maxY) maxY = v.y;
-      }
-    });
-    if (!found) return;
-    var pad = 500;
-    var w = (maxX - minX) + 2 * pad, h = (maxY - minY) + 2 * pad;
-    var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    var B = Math.min(size.w / w, size.h / h);
-    centerView(cx, cy, B / fitScale());
-  }
-
-  // ---------- 控件 ----------
-  var selClass = document.getElementById("sel-class");
-  var selAsc = document.getElementById("sel-asc");
-  classStarts.forEach(function (c, i) {
-    var op = document.createElement("option");
-    op.value = String(i);
-    op.textContent = CLASS_NAMES[c.node.classStartIndex] || c.node.name;
-    selClass.appendChild(op);
-  });
-
-  function fillAsc() {
-    var list = ascByClass[classStarts[state.classIndex].node.classStartIndex] || [];
-    selAsc.innerHTML = '<option value="">无</option>';
-    list.forEach(function (a) {
-      var op = document.createElement("option");
-      op.value = a.name;
-      op.textContent = tr(a.name, "name") + (a.isBloodline ? "（血系）" : "");
-      selAsc.appendChild(op);
-    });
-    selAsc.value = state.asc && list.some(function (a) { return a.name === state.asc; }) ? state.asc : "";
-    state.asc = selAsc.value;
-  }
-
-  function rebuild(keepView) {
-    buildView();
-    resetAllocated();
-    state.selectedSocket = null;
-    state.selectedNode = null;
-    renderJewel();
-    renderDetail(null);
-    renderStats();
-    if (!keepView) { state.scale = 1; state.panX = 0; state.panY = 0; }
-    draw();
-  }
-
-  selClass.addEventListener("change", function () {
-    var idx = Number(selClass.value);
-    if (idx === state.classIndex) return;
-    if (hasBuild() && !confirm("切换职业会清空已分配的天赋，是否继续？")) {
-      selClass.value = String(state.classIndex);
-      return;
-    }
-    state.classIndex = idx;
-    state.asc = "";
-    fillAsc();
-    rebuild(false);   // 重建并把起始点切到新职业
-    focusClass();
-  });
-  selAsc.addEventListener("change", function () {
-    var v = selAsc.value;
-    if (v === state.asc) return;
-    if (hasBuild() && !confirm("切换升华会清空已分配的天赋，是否继续？")) {
-      selAsc.value = state.asc;
-      return;
-    }
-    state.asc = v;
-    resetAllocated();      // 清空天赋
-    state.selectedNode = null;
-    renderDetail(null);
-    renderStats();
-    draw();                // 仅高亮所选升华，不移动视口
-  });
-  document.getElementById("ck-cluster").addEventListener("change", function (e) {
-    state.showCluster = e.target.checked;
-    rebuild(true);
-  });
-  document.getElementById("sel-radius").addEventListener("change", function (e) {
-    state.radius = Number(e.target.value);
-    renderJewel(); draw();
-  });
-  document.getElementById("ck-ring").addEventListener("change", function (e) {
-    state.ring = e.target.checked;
-    renderJewel(); draw();
-  });
-  document.getElementById("btn-reset").addEventListener("click", function () {
-    rebuild(true);
-  });
-  document.getElementById("btn-fit").addEventListener("click", function () {
-    state.scale = 1; state.panX = 0; state.panY = 0; draw();
-  });
-
-  // ---------- 数据源切换 ----------
   var DATA_FILES = [
     { file: "poe1-tree-3.29.js", label: "3.29 官方 Lua 生成" },
-    { file: "poe1-tree-3_26.js", label: "3.26 官方 Lua 生成" },
+    { file: "poe1-tree-3.26.js", label: "3.26 官方 Lua 生成" },
     { file: "poe1-tree.js", label: "PoB v2.67.2（原抓取，3_29）" }
   ];
-  var ALL_TREES = {};
+
   var selData = document.getElementById("sel-data");
+  var selClass = document.getElementById("sel-class");
+  var selAsc = document.getElementById("sel-asc");
+  var searchInput = document.getElementById("search");
+  var searchResult = document.getElementById("search-result");
+
   DATA_FILES.forEach(function (d, i) {
     var op = document.createElement("option");
-    op.value = String(i);
-    op.textContent = d.label;
+    op.value = String(i); op.textContent = d.label;
     selData.appendChild(op);
   });
 
-  function loadTreeFile(file) {
-    return new Promise(function (resolve, reject) {
-      if (ALL_TREES[file]) return resolve(ALL_TREES[file]);
-      var s = document.createElement("script");
-      s.src = file + "?v=" + Date.now();
-      s.onload = function () {
-        var t = window.POE1_TREE;
-        ALL_TREES[file] = t;
-        s.remove();
-        resolve(t);
-      };
-      s.onerror = function () { reject(new Error("加载失败: " + file)); };
-      document.head.appendChild(s);
-    });
-  }
+  var tree = createTreeView({
+    canvas: document.getElementById("canvas"),
+    stage: document.getElementById("stage"),
+    tooltip: document.getElementById("tooltip"),
+    detail: document.getElementById("detail"),
+    jewelBlock: document.getElementById("jewel-block"),
+    jewelName: document.getElementById("jewel-name"),
+    jewelRadius: document.getElementById("jewel-radius"),
+    jewelCount: document.getElementById("jewel-count"),
+    jewelDetail: document.getElementById("jewel-detail"),
+    statPoints: document.getElementById("stat-points"),
+    statSockets: document.getElementById("stat-sockets"),
+    statAsc: document.getElementById("stat-asc"),
+    mode: "build",
+    fillAsc: function (list) {
+      selAsc.innerHTML = '<option value="">无</option>';
+      list.forEach(function (a) {
+        var op = document.createElement("option");
+        op.value = a.name; op.textContent = a.name + (a.isBloodline ? "（血系）" : "");
+        selAsc.appendChild(op);
+      });
+      selAsc.value = "";
+    }
+  });
 
-  function setActiveTree(tree) {
-    if (!tree) return;
-    TREE = tree; NODES = tree.nodes; GROUPS = tree.groups; ORBIT_RADII = tree.constants.orbitRadii;
-    computeStarts();
-    // 重建职业下拉
+  tree.load([DATA_FILES[Number(selData.value)]]).then(function () {
+    document.getElementById("loading").style.display = "none";
+    var cs = tree.getClassStarts();
     selClass.innerHTML = "";
-    classStarts.forEach(function (c, i) {
+    cs.forEach(function (c, i) {
       var op = document.createElement("option");
       op.value = String(i);
       op.textContent = CLASS_NAMES[c.node.classStartIndex] || c.node.name;
       selClass.appendChild(op);
     });
-    state.classIndex = 0; state.asc = "";
-    document.getElementById("data-ver").textContent =
-      (tree.meta && tree.meta.version) || tree.packTag || "-";
-    fillAsc();
-    rebuild(false);
-  }
+    selClass.value = "0";
+    tree.focusClass();
+  }).catch(function (e) { alert("加载失败: " + e.message); });
 
   selData.addEventListener("change", function () {
     var d = DATA_FILES[Number(selData.value)];
-    loadTreeFile(d.file).then(function (t) { setActiveTree(t); resize(); })
-      .catch(function (e) { alert(e.message); });
+    tree.load([d]).then(function () {
+      var cs = tree.getClassStarts();
+      selClass.innerHTML = "";
+      cs.forEach(function (c, i) {
+        var op = document.createElement("option");
+        op.value = String(i); op.textContent = CLASS_NAMES[c.node.classStartIndex] || c.node.name;
+        selClass.appendChild(op);
+      });
+      selClass.value = "0"; tree.focusClass();
+    });
   });
 
-  // ---------- 启动 ----------
-  Promise.all(DATA_FILES.map(function (d) {
-    return loadTreeFile(d.file).catch(function (e) { console.error(e); return null; });
-  })).then(function (trees) {
-    var first = trees[0] || Object.keys(ALL_TREES).map(function (k) { return ALL_TREES[k]; })[0];
-    setActiveTree(first);
-    document.getElementById("loading").style.display = "none";
-    resize();
+  selClass.addEventListener("change", function () { tree.setClassIndex(Number(selClass.value)); });
+  selAsc.addEventListener("change", function () { tree.setAsc(selAsc.value); });
+  document.getElementById("sel-radius").addEventListener("change", function (e) { tree.setRadius(Number(e.target.value)); });
+  document.getElementById("ck-ring").addEventListener("change", function (e) { tree.setRing(e.target.checked); });
+  document.getElementById("ck-cluster").addEventListener("change", function (e) { tree.setShowCluster(e.target.checked); });
+  document.getElementById("btn-reset").addEventListener("click", function () { tree.rebuild(true); });
+  document.getElementById("btn-fit").addEventListener("click", function () { tree.fit(); });
+
+  // 搜索
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+  }
+  function cleanNewlines(s) {
+    return String(s).replace(/\\+n/g, " ").replace(/\n/g, " ").replace(/\s+/g, " ").trim();
+  }
+  function tr(text, table) {
+    if (text == null) return text;
+    var k = String(text).trim(); if (!k) return text;
+    var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR[table]) || {};
+    return dict[cleanNewlines(k)] || cleanNewlines(text);
+  }
+  searchInput.addEventListener("input", function () {
+    var q = searchInput.value.trim().toLowerCase();
+    if (!q) { searchResult.innerHTML = ""; return; }
+    var NODES = tree.getNODES(), hits = [];
+    Object.keys(NODES).forEach(function (id) {
+      var n = NODES[id];
+      if (n.group === undefined || n.group < 0) return;
+      var nameEn = (n.name || ""), nameZh = tr(nameEn, "name");
+      if (nameEn.toLowerCase().indexOf(q) >= 0 || nameZh.toLowerCase().indexOf(q) >= 0) { hits.push({ id: id, n: n }); return; }
+      var statsZh = (n.stats || []).map(function (s) { return tr(s, "stat"); }).join(" ");
+      if ((statsZh + " " + (n.stats || []).join(" ")).toLowerCase().indexOf(q) >= 0) hits.push({ id: id, n: n });
+      if (hits.length > 200) return;
+    });
+    searchResult.innerHTML = hits.slice(0, 40).map(function (h) {
+      var zh = tr(h.n.name, "name");
+      return '<button class="result-item" data-node="' + h.id + '">' + escapeHtml(zh || h.n.name) +
+        "<br><small>" + (h.n.type || "") + " · " + h.id + "</small></button>";
+    }).join("") || '<div class="hint">无匹配</div>';
+  });
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest ? ev.target.closest("[data-node]") : null;
+    if (!btn) return;
+    tree.focusNode(btn.getAttribute("data-node"));
   });
 })();
 </script>
