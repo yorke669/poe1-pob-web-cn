@@ -355,15 +355,121 @@
 
   function statIdx(index) { return statByIndex[index] || null; }
 
-  /** 无数值版：{0} → #，用于「找编号」的词条下拉 */
+  /* ---------------- 国际化 ----------------
+   * 词条文本由 GGG 模板（"{0:+d}% to ..."）渲染出来，翻译必须作用在**模板**上，
+   * 再把数值回填进译文的 {n} 占位符。页面注入查表函数：
+   *     PoTimeless.setTranslator(function (table, key) { return 中文 || null; });
+   * 未注入 / 未命中一律回退英文，因此 Worker 里不注入也能正常跑。
+   */
+
+  var TRFN = null;
+
+  function setTranslator(fn) { TRFN = fn || null; }
+
+  function zhOf(table, key) {
+    if (!TRFN || key == null) return null;
+    var v = TRFN(table, String(key));
+    return (v && v !== key) ? v : null;
+  }
+
+  /** GGG 用 \\n 或真实换行分隔多段描述（基石基本都是多段） */
+  function splitLines(s) { return String(s).split(/\\+n|\r?\n/); }
+
+  /** 模板归一：{0:+d} / {0:d} → {0}，好和 statDescriptions 的译文键对上 */
+  function normTmpl(t) { return String(t).replace(/\{(\d+)(?::[^}]*)\}/g, "{$1}"); }
+
+  /**
+   * 把模板里的字面数字改写成占位符，用来命中「常量也是占位符」的官方译文。
+   * 例："{0} to Ward per 10 Armour on Equipped Helmet"
+   *   → "{0} to Ward per {1} Armour on Equipped Helmet"，nums = {"{1}": "10"}
+   */
+  function numVariant(key) {
+    // 占位符先换成不含数字的哨兵（\x01a\x01 / \x01b\x01 …），
+    // 否则 {0} 里的 0 会被下面的 \d+ 当成字面数字
+    var masked = key.replace(/\{(\d+)\}/g, function (m0, d) {
+      return "\x01" + String.fromCharCode(97 + Number(d)) + "\x01";
+    });
+    var maxIdx = -1, m, re = /\{(\d+)\}/g;
+    while ((m = re.exec(key))) { if (Number(m[1]) > maxIdx) maxIdx = Number(m[1]); }
+    var next = maxIdx + 1, lit = [], re2 = /\d+/g;
+    while ((m = re2.exec(masked))) lit.push({ i: m.index, s: m[0] });
+    if (!lit.length) return null;
+    var k = "", pos = 0, nums = Object.create(null);
+    for (var i = 0; i < lit.length; i++) {
+      k += masked.slice(pos, lit[i].i) + "{" + (next + i) + "}";
+      nums["{" + (next + i) + "}"] = lit[i].s;
+      pos = lit[i].i + lit[i].s.length;
+    }
+    k += masked.slice(pos);
+    return {
+      key: k.replace(/\x01([a-z])\x01/g, function (m0, c) {
+        return "{" + (c.charCodeAt(0) - 97) + "}";
+      }),
+      nums: nums
+    };
+  }
+
+  /** 单行模板 → 中文模板（含 {n}）+ 字面数字回填表；未命中返回 null
+   *  候选键按「越具体越优先」排列：原样 → 去占位符前的 "+" → 常量改占位符 */
+  function zhLine(tmpl) {
+    var base = normTmpl(tmpl);
+    // 去占位符前的 "+"（GGG 的 {0:+d} 在两套语料里写法不一致）
+    var noPlus = base.replace(/\+\{(\d+)\}/g, "{$1}");
+    // 去关键词标记："[DirectFlight|Direct Flight]" → "Direct Flight"
+    var noLink = base.replace(/\[[^\]\|]*\|([^\]]*)\]/g, "$1");
+    var bases = [base];
+    if (noPlus !== base) bases.push(noPlus);
+    if (noLink !== base && bases.indexOf(noLink) < 0) bases.push(noLink);
+    for (var b = 0; b < bases.length; b++) {
+      var v = numVariant(bases[b]);
+      var cands = v ? [{ key: bases[b], nums: null }, v]
+                    : [{ key: bases[b], nums: null }];
+      for (var i = 0; i < cands.length; i++) {
+        var zh = zhOf("stat", cands[i].key);
+        if (zh) return { zh: zh, nums: cands[i].nums };
+      }
+    }
+    return null;
+  }
+
+  /** 中文模板 → 文本：先回填常量占位符（{1}{2}…），再填 {0} */
+  function applyZh(z, v0) {
+    var out = String(z.zh);
+    if (z.nums) { for (var p in z.nums) out = out.split(p).join(z.nums[p]); }
+    return out.replace(/\{0(?::[^}]*)?\}/g, v0);
+  }
+
+  /** 英文渲染（单行）：{0:+d} 的 "+" 在负数时丢弃 */
+  function renderEn(line, v0) {
+    return String(line).replace(/\{0(?::(.*?)d(.*?))\}/, function (m0, pre, suf) {
+      return (pre === "+" && String(v0).charAt(0) === "-") ? (v0 + suf) : (pre + v0 + suf);
+    }).replace("{0}", v0);
+  }
+
+  /** 整段模板（可能多段）→ 文本，段间用 \n 分隔；未命中的段保留英文 */
+  function renderStat(tmpl, v0) {
+    var lines = splitLines(tmpl), out = [], any = false, i;
+    if (TRFN) {
+      for (i = 0; i < lines.length; i++) {
+        var z = zhLine(lines[i]);
+        out[i] = z ? applyZh(z, v0) : null;
+        if (z) any = true;
+      }
+    }
+    if (!any) return lines.map(function (l) { return renderEn(l, v0); }).join("\n");
+    for (i = 0; i < lines.length; i++) if (out[i] === null) out[i] = renderEn(lines[i], v0);
+    return out.join("\n");
+  }
+
+  /** 无数值版：{0} → #，用于「找编号」的词条下拉；多段（基石）并成一行并截断 */
   function statLabel(statIndex) {
     var st = statIdx(statIndex);
     if (!st) return "Stat #" + statIndex;
     var desc = (D.translations || {})[st.id];
-    if (desc && desc.length && desc[0][0]) {
-      return desc[0][0].replace(/\{\d(?::(.*?)d(.*?))\}/, "$1#$2").replace(/\{\d\}/, "#");
-    }
-    return st.text || st.id || ("Stat #" + statIndex);
+    var tmpl = (desc && desc.length && desc[0][0]) ? desc[0][0] : (st.text || st.id);
+    if (!tmpl) return "Stat #" + statIndex;
+    var s = renderStat(tmpl, "#").replace(/\s*\n\s*/g, " / ");
+    return s.length > 96 ? s.slice(0, 96) + "…" : s;
   }
 
   /** 带数值版：conditions 选分支 → index_handlers 换算 → 回填 {0} */
@@ -389,23 +495,27 @@
     if (datum[2]) {
       for (i = 0; i < datum[2].length; i++) finalStat /= (INDEX_HANDLERS[datum[2][i]] || 1);
     }
-    return datum[0]
-      .replace(/\{0(?::(.*?)d(.*?))\}/, "$1" + finalStat.toString() + "$2")
-      .replace("{0}", String(parseFloat(finalStat.toFixed(2))));
+    var num = String(parseFloat(finalStat.toFixed(2)));
+    // {0:+d} 正数要带 "+"；负数自身带 "-"（Go 版这里会拼成 "+-"，属上游 bug）
+    var v0 = (/\{0:\+d\}/.test(datum[0]) && finalStat >= 0) ? ("+" + num) : num;
+    return renderStat(datum[0], v0);
   }
 
-  /** 把 calculate() 的结果渲染成文本行数组 */
+  /** 把 calculate() 的结果渲染成文本行数组（多段描述会拆成多行） */
   function resultLines(res) {
     var lines = [], i, a;
+    function push(t) {
+      String(t).split("\n").forEach(function (l) { if (l.trim()) lines.push(l); });
+    }
     if (res.skill) {
       for (i = 0; i < res.skill.k.length; i++) {
-        lines.push(statText(res.skill.k[i], i < res.rolls.length ? res.rolls[i] : 0));
+        push(statText(res.skill.k[i], i < res.rolls.length ? res.rolls[i] : 0));
       }
     }
     for (a = 0; a < res.additions.length; a++) {
       var add = res.additions[a];
       for (i = 0; i < add.addition.k.length; i++) {
-        lines.push(statText(add.addition.k[i], i < add.rolls.length ? add.rolls[i] : 0));
+        push(statText(add.addition.k[i], i < add.rolls.length ? add.rolls[i] : 0));
       }
     }
     return lines;
@@ -426,9 +536,20 @@
     return (D.conquerors && D.conquerors[String(jewelType)]) || [];
   }
 
+  /** 被替换成的替代天赋名（英文原名，页面自行查 jewel / name 表翻译） */
+  function skillNameOf(res) {
+    return (res && res.skill && res.skill.n) ? res.skill.n : "";
+  }
+
+  /** 诊断用：模板里查不到中文的段落（空数组 = 全部命中），供 check_tj_i18n.js 出报表 */
+  function statZhMiss(tmpl) {
+    return splitLines(tmpl).filter(function (l) { return !zhLine(l); });
+  }
+
   var API = {
     Rng: Rng,
     init: init,
+    setTranslator: setTranslator,
     ready: function () { return ready; },
     treeVersion: function () { return D && D.meta ? D.meta.treeVersion : null; },
     jewels: function () { return (D && D.jewels) || {}; },
@@ -447,6 +568,8 @@
     statLabel: statLabel,
     statText: statText,
     resultLines: resultLines,
+    skillNameOf: skillNameOf,
+    statZhMiss: statZhMiss,
     T: { NONE: T_NONE, SMALL_ATTR: T_SMALL_ATTR, SMALL_NORMAL: T_SMALL_NORMAL,
          NOTABLE: T_NOTABLE, KEYSTONE: T_KEYSTONE, JEWEL: T_JEWEL }
   };

@@ -53,8 +53,11 @@
       allocated: Object.create(null),
       selectedSocket: null,
       selectedNode: null,
+      highlightNodes: Object.create(null),
       ringKeys: Object.create(null),
       ringSelected: Object.create(null),
+      // 军团珠宝效果覆盖：{ graphId: { replaced, name, lines[] } }，由页面注入
+      nodeEffects: null,
       hover: null,
       scale: 1, panX: 0, panY: 0,
       view: null
@@ -359,6 +362,31 @@
           ctx.lineWidth = Math.max(7, 1.2 / B);
           ctx.stroke();
         }
+        if (mode === "jewel" && effectOf(n.id) && effectOf(n.id).replaced) {
+          // 被军团珠宝替换（基石/中点改名）的节点：金色外环
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, R + 24, 0, Math.PI * 2);
+          ctx.strokeStyle = "#e8c56a";
+          ctx.lineWidth = Math.max(6, 1.4 / B);
+          ctx.stroke();
+        }
+        if (state.highlightNodes[n.id]) {
+          ctx.save();
+          ctx.globalAlpha = 1;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, R + 44, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 38, 0, .28)";
+          ctx.fill();
+          ctx.strokeStyle = "#ff2600";
+          ctx.lineWidth = Math.max(18, 4 / B);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, R + 18, 0, Math.PI * 2);
+          ctx.strokeStyle = "#fff200";
+          ctx.lineWidth = Math.max(10, 2.4 / B);
+          ctx.stroke();
+          ctx.restore();
+        }
         if (state.selectedNode === n.id || state.hover === n.id) {
           ctx.beginPath();
           ctx.arc(n.x, n.y, R + (state.selectedNode === n.id ? 26 : 16), 0, Math.PI * 2);
@@ -603,13 +631,34 @@
       return html;
     }
 
+    // ---------------- 军团珠宝效果覆盖 ----------------
+    function effectOf(id) {
+      return (state.nodeEffects && state.nodeEffects[id]) || null;
+    }
+    /** 显示名：被替换的节点用军团珠宝赋予的新名 */
+    function displayName(id, n) {
+      var e = effectOf(id);
+      if (e && e.replaced && e.name) return e.name;
+      return tr(n.name, "name");
+    }
+    /** 词条：替换则只显示新词条；追加则原词条 + 追加词条 */
+    function statsHtmlEff(id, n) {
+      var e = effectOf(id);
+      if (!e) return statsHtml(n);
+      var tag = '<div style="color:#e8c56a;font-size:11px;margin:4px 0 2px;font-weight:600">' +
+        (e.replaced ? "替换为「" + escapeHtml(e.name || "替代天赋") + "」"
+                    : "追加 " + (e.lines || []).length + " 条") + "</div>";
+      var ul = "<ul>" + (e.lines || []).map(function (l) { return "<li>" + escapeHtml(l) + "</li>"; }).join("") + "</ul>";
+      return e.replaced ? (tag + ul) : (statsHtml(n) + tag + ul);
+    }
+
     function showTooltip(clientX, clientY, id) {
       if (!tooltip) return;
       if (!id) { hideTooltip(); return; }
       var n = NODES[id];
-      tooltip.innerHTML = '<div class="t-name">' + escapeHtml(tr(n.name, "name")) + "</div>" +
+      tooltip.innerHTML = '<div class="t-name">' + escapeHtml(displayName(id, n)) + "</div>" +
         '<div class="t-type">' + (TYPE_ZH[n.type] || n.type) + (n.ascendancy ? " · " + escapeHtml(tr(n.ascendancy, "name")) : "") + "</div>" +
-        statsHtml(n);
+        statsHtmlEff(id, n);
       tooltip.style.display = "block";
       var r = stage.getBoundingClientRect();
       var x = clientX - r.left + 16, y = clientY - r.top + 16;
@@ -633,12 +682,12 @@
       var n = NODES[id];
       var alloc = !!state.allocated[id];
       detail.innerHTML =
-        '<div class="node-name">' + escapeHtml(tr(n.name, "name")) + "</div>" +
+        '<div class="node-name">' + escapeHtml(displayName(id, n)) + "</div>" +
         '<div class="node-type">' + (TYPE_ZH[n.type] || n.type) +
           (n.ascendancy ? " · " + escapeHtml(n.ascendancy) : "") +
           (mode === "build" && alloc ? " · <span style='color:#e8c56a'>已分配</span>" : (mode === "build" && canAllocate(id) ? " · <span style='color:#67e8f9'>可分配</span>" : "")) +
         "</div>" +
-        statsHtml(n) +
+        statsHtmlEff(id, n) +
         '<div class="hint" style="margin-top:8px">节点 ID ' + id + (n.group !== undefined ? " · group " + n.group + " · orbit " + n.orbit : "") + "</div>";
     }
     var statPoints = opts.statPoints || null, statSockets = opts.statSockets || null, statAsc = opts.statAsc || null;
@@ -730,6 +779,7 @@
       state.ringKeys = Object.create(null);
       state.ringSelected = Object.create(null);
       state.selectedNode = null;
+      state.highlightNodes = Object.create(null);
       renderJewel();
       if (detail) renderDetail(null);
       renderStats();
@@ -748,6 +798,11 @@
       state: state,
       draw: draw, resize: resize,
       focusClass: focusClass, focusAscendancy: focusAscendancy, focusNode: focusNode,
+      highlightNodes: function (ids) {
+        state.highlightNodes = Object.create(null);
+        (ids || []).forEach(function (id) { if (NODES[id]) state.highlightNodes[id] = true; });
+        draw();
+      },
       fit: function () { state.scale = 1; state.panX = 0; state.panY = 0; draw(); },
       ringRange: ringRange,
       setRadius: function (r) { state.radius = r; rebuildRing(); pruneRingSelected(); renderJewel(); draw(); },
@@ -756,6 +811,12 @@
       clearRing: function () { state.ringSelected = Object.create(null); draw(); },
       getSelectedInRing: function () { return Object.keys(state.ringSelected); },
       getRingKeys: function () { return Object.keys(state.ringKeys); },
+      /** 注入军团珠宝效果覆盖：{ graphId: { replaced, name, lines[] } }（null 清除） */
+      setNodeEffects: function (map) {
+        state.nodeEffects = map || null;
+        if (detail) renderDetail(state.selectedNode);
+        draw();
+      },
       rebuild: rebuild,
       load: function (dataFiles) {
         return Promise.all(dataFiles.map(function (d) {

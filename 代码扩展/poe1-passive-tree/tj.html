@@ -77,6 +77,9 @@
   .tj-node .nname { color: var(--gold); font-weight: 600; }
   .tj-node .rep { font-size: 11px; color: #9aa7b8; margin: 2px 0; }
   .tj-node ul { margin: 0 0 0 16px; padding: 0; color: #c2cdd9; font-size: 12px; }
+  .tj-node[data-node], .seed-stats li[data-nodes] { cursor: pointer; }
+  .tj-node[data-node]:hover, .seed-stats li[data-nodes]:hover { color: #67e8f9; }
+  .tj-node.active-hit, .seed-stats li.active-hit { outline: 1px solid #67e8f9; outline-offset: 2px; border-radius: 4px; }
 
   .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); }
   #tj-seeds .seed-row { border-top: 1px solid var(--border); padding: 6px 0; }
@@ -223,8 +226,19 @@
     var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR[table]) || {};
     return dict[cleanNewlines(k)] || cleanNewlines(text);
   }
+  /** 军团珠宝专属名（珠宝类型 / 征服者 / 替代基石）：jewel 表 → name 表 → 原文 */
+  function trTj(text) {
+    var a = tr(text, "jewel");
+    if (a !== text) return a;
+    return tr(text, "name");
+  }
 
   PoTimeless.init(window.POE1_TIMELESS);
+  // 词条文本由 GGG 模板渲染，翻译作用在模板上（见 timeless.js 的 renderStat）
+  PoTimeless.setTranslator(function (table, key) {
+    var dict = (window.POE1_TREE_TR && window.POE1_TREE_TR[table]) || {};
+    return dict[cleanNewlines(key)] || null;
+  });
 
   var selData = document.getElementById("sel-data");
   var selClass = document.getElementById("sel-class");
@@ -264,7 +278,7 @@
       selAsc.innerHTML = '<option value="">无</option>';
       list.forEach(function (a) {
         var op = document.createElement("option");
-        op.value = a.name; op.textContent = a.name + (a.isBloodline ? "（血系）" : "");
+        op.value = a.name; op.textContent = trTj(a.name) + (a.isBloodline ? "（血系）" : "");
         selAsc.appendChild(op);
       });
       selAsc.value = "";
@@ -292,14 +306,16 @@
     var jewels = PoTimeless.jewels();
     tjJewel.innerHTML = "";
     Object.keys(jewels).forEach(function (id) {
-      var o = document.createElement("option"); o.value = id; o.textContent = jewels[id]; tjJewel.appendChild(o);
+      var o = document.createElement("option");
+      o.value = id; o.textContent = trTj(jewels[id]); tjJewel.appendChild(o);
     });
   }
   function tjFillConquerors() {
     var cs = PoTimeless.conquerorsOf(Number(tjJewel.value)) || [];
     tjConq.innerHTML = "";
     cs.forEach(function (name) {
-      var o = document.createElement("option"); o.value = name; o.textContent = name; tjConq.appendChild(o);
+      var o = document.createElement("option");
+      o.value = name; o.textContent = trTj(name); tjConq.appendChild(o);
     });
     tj.conqueror = tjConq.value;
     var sr = PoTimeless.seedRangeOf(Number(tjJewel.value));
@@ -380,12 +396,43 @@
       tjSocketInfo.innerHTML = "已选珠宝孔：<b>" + escapeHtml(tr(n.name, "name")) + "</b> #" + id + " · 半径 " + ringText();
     }
     updateSelCount();
+    tjEffects();
     if (tj.seed) tjRender();
   }
 
   function onRingSelect(id) {
     updateSelCount();
+    tjEffects();
     if (currentTab === "effect") tjRender();
+  }
+
+  /** 把圈内天赋的替换/追加结果算出来，交给树渲染层（悬浮提示 / 详情 / 金色替换标记） */
+  function tjEffects() {
+    if (!tj.socket || !NODES[tj.socket] || !Number(tj.seed)) { tree.setNodeEffects(null); return; }
+    var seed = Number(tj.seed);
+    var keys = tree.getSelectedInRing();
+    if (!keys.length) keys = tree.getRingKeys();
+    var jewelType = Number(tj.jewel), conq = tj.conqueror;
+    console.log("[tjEffects] seed:", seed, "keys:", keys.length, "jewelType:", jewelType, "conq:", conq);
+    var map = {};
+    keys.forEach(function (gid) {
+      var p = PoTimeless.passiveByGraphId(Number(gid));
+      if (!p) {
+        console.log("[tjEffects] passiveByGraphId(" + gid + ") = null");
+        return;
+      }
+      var res = PoTimeless.calculate(p.i, seed, jewelType, conq);
+      var lines = PoTimeless.resultLines(res);
+      if (!res.skill && !lines.length) return;   // 无变化（如未替换的小点且无追加）
+      map[gid] = {
+        replaced: !!res.skill,
+        name: res.skill ? trTj(PoTimeless.skillNameOf(res)) : null,
+        lines: lines
+      };
+      console.log("[tjEffects] gid:", gid, "replaced:", !!res.skill, "name:", map[gid].name);
+    });
+    console.log("[tjEffects] map keys:", Object.keys(map).length);
+    tree.setNodeEffects(map);
   }
 
   function tjRender() {
@@ -406,7 +453,11 @@
       var node = NODES[gid];
       var name = node ? escapeHtml(tr(node.name, "name")) : ("#" + gid);
       var lines = PoTimeless.resultLines(res);
-      list.push({ name: name, replaced: !!res.skill, lines: lines });
+      var skill = PoTimeless.skillNameOf(res);
+      list.push({
+        gid: String(gid), name: name, replaced: !!res.skill,
+        skill: skill ? escapeHtml(trTj(skill)) : "", lines: lines
+      });
     });
     if (!list.length) { tjResult.className = "muted"; tjResult.textContent = "该珠宝孔半径内没有可影响的天赋节点。"; return; }
     var replacedCount = list.filter(function (r) { return r.replaced; }).length;
@@ -417,8 +468,10 @@
         (sel.length ? "（已选 " + sel.length + "）" : "") +
         " · 其中 " + replacedCount + " 个被替换</div>" +
       list.map(function (r) {
-        return '<div class="tj-node"><div class="nname">' + r.name + "</div>" +
-          '<div class="rep">' + (r.replaced ? "→ 被替换（基石/中点/小点）" : "→ 追加效果") + "</div>" +
+        return '<div class="tj-node" data-node="' + r.gid + '"><div class="nname">' + r.name + "</div>" +
+          '<div class="rep">' +
+            (r.replaced ? ("→ 替换为「" + (r.skill || "替代天赋") + "」") : "→ 追加效果") +
+          "</div>" +
           "<ul>" + r.lines.map(function (l) { return "<li>" + escapeHtml(l) + "</li>"; }).join("") + "</ul></div>";
       }).join("");
   }
@@ -431,16 +484,20 @@
     Object.keys(results).forEach(function (seedStr) {
       var byNode = results[seedStr];
       var nodeHits = Object.keys(byNode).length;
-      var matched = [];
+      var matched = [], totalHits = 0, minOk = true;
       selected.forEach(function (sel) {
-        var cnt = 0;
+        var nodes = [];
         Object.keys(byNode).forEach(function (pi) {
-          if (byNode[pi][String(sel.id)] != null) cnt++;
+          if (byNode[pi][String(sel.id)] == null) return;
+          var p = PoTimeless.passiveByIndex(Number(pi));
+          if (p) nodes.push(String(p.g));
         });
-        if (cnt >= Math.max(1, sel.min)) matched.push({ id: sel.id, count: cnt });
+        totalHits += nodes.length;
+        if (nodes.length > 0) matched.push({ id: sel.id, count: nodes.length, nodes: nodes });
+        if (sel.min > 0 && nodes.length < sel.min) minOk = false;
       });
-      if (matched.length >= overallMin) {
-        entries.push({ seed: Number(seedStr), matched: matched, nodeHits: nodeHits });
+      if (minOk && totalHits >= overallMin && matched.length) {
+        entries.push({ seed: Number(seedStr), matched: matched, hitCount: totalHits, nodeHits: nodeHits });
       }
     });
     if (!entries.length) {
@@ -448,7 +505,7 @@
       tjSeeds.textContent = "没有种子满足（整体最少命中 " + overallMin + " 条）的条件。";
       return;
     }
-    entries.sort(function (a, b) { return b.nodeHits - a.nodeHits || a.seed - b.seed; });
+    entries.sort(function (a, b) { return b.hitCount - a.hitCount || b.nodeHits - a.nodeHits || a.seed - b.seed; });
     var capped = entries.slice(0, 400);
     var groups = Object.create(null);
     capped.forEach(function (e) { (groups[e.nodeHits] = groups[e.nodeHits] || []).push(e); });
@@ -460,10 +517,10 @@
       out.push('<div class="group-body" data-group="' + c + '" style="display:none">');
       list.forEach(function (r) {
         var statsHtml = r.matched.map(function (m) {
-          return "<li>" + escapeHtml(labelOf(m.id)) + " ×" + m.count + "</li>";
+          return '<li data-nodes="' + escapeHtml((m.nodes || []).join(",")) + '">' + escapeHtml(labelOf(m.id)) + " ×" + m.count + "</li>";
         }).join("");
-        out.push('<div class="seed-row"><button class="tab" style="display:inline-block" data-seed="' + r.seed + '">种子 ' + r.seed + "</button>" +
-          " <small>" + r.matched.length + "/" + selected.length + " 词条 · " + r.nodeHits + " 节点</small>" +
+        out.push('<div class="seed-row" data-seed="' + r.seed + '"><button class="tab" style="display:inline-block" data-seed="' + r.seed + '">种子 ' + r.seed + "</button>" +
+          " <small>" + r.hitCount + " 次命中 · " + r.matched.length + "/" + selected.length + " 词条 · " + r.nodeHits + " 节点</small>" +
           '<ul class="seed-stats">' + statsHtml + "</ul></div>");
       });
       out.push("</div>");
@@ -473,33 +530,72 @@
       ? '<div class="muted">（仅显示前 ' + capped.length + ' 个种子，命中 ' + entries.length + ' 个）</div>' : "");
   }
 
-  // 取搜索范围（passive 索引）：默认只在「选中的（亮起的）圈内天赋」里找；
-  // opts.all 为 true 时退回整圈（预留给后续「全范围查找」）。
+  // 取搜索范围（passive 索引）：只在「选中的（亮起的）圈内天赋」里找。
   function getSearchIndices(opts) {
     opts = opts || {};
-    var keys = opts.all ? tree.getRingKeys() : (tree.getSelectedInRing());
-    if (!keys.length) keys = tree.getRingKeys();   // 没有任何选中时，退回整圈，保证可搜
+    var ringKeys = tree.getRingKeys();
+    var selectedKeys = tree.getSelectedInRing();
+    var keys = opts.all ? ringKeys : selectedKeys;
+    console.log("[tjFind:getSearchIndices]", {
+      opts: opts,
+      socket: tj.socket,
+      radius: tree.state.radius,
+      ring: tree.state.ring,
+      ringKeysCount: ringKeys.length,
+      selectedKeysCount: selectedKeys.length,
+      usedKeysCount: keys.length,
+      usedKeys: keys.slice(0, 80)
+    });
     var indices = [];
     keys.forEach(function (gid) {
       var p = PoTimeless.passiveByGraphId(Number(gid));
       if (p) indices.push(p.i);
     });
+    console.log("[tjFind:getSearchIndices:result]", { indicesCount: indices.length, indices: indices.slice(0, 80) });
     return indices;
   }
 
   function tjFind(opts) {
+    opts = opts || {};
+    console.log("[tjFind:params]", {
+      opts: opts,
+      socket: tj.socket,
+      jewel: tj.jewel,
+      conqueror: tj.conqueror,
+      seed: tj.seed,
+      selectedStats: selectedStats.map(function (s) { return { id: s.id, min: Math.max(0, s.min | 0), label: labelOf(s.id) }; }),
+      overallMin: Number(tjOverallMin.value) || 0,
+      ringKeysCount: tree.getRingKeys().length,
+      selectedInRingCount: tree.getSelectedInRing().length
+    });
     if (!tj.socket || !NODES[tj.socket]) { alert("请先点击上方按钮，在天赋树上选择一个珠宝孔。"); return; }
-    var indices = getSearchIndices(opts);
-    if (!indices.length) { alert("该珠宝孔半径内没有可影响的天赋节点。"); return; }
     var selected = selectedStats.map(function (s) { return { id: s.id, min: Math.max(0, s.min | 0) }; });
     if (!selected.length) { alert("请至少勾选一个词条（可点「全选词条」或用上方下拉添加）。"); return; }
+    var indices = getSearchIndices(opts);
+    if (!indices.length) { alert("请先在圈内选中要参与筛选的天赋点，再搜索种子。"); tjSeeds.className = "muted"; tjSeeds.textContent = "未选中任何圈内天赋点，搜索不会在整圈里兜底筛选。"; return; }
     var overallMin = Math.max(0, Number(tjOverallMin.value) || 0);
     var want = selected.map(function (s) { return s.id; });
-    tjSeeds.className = "muted"; tjSeeds.textContent = "在所选节点范围内扫描中…";
+    tjSeeds.className = "muted"; tjSeeds.textContent = "在已选天赋范围内扫描中…";
     setTimeout(function () {
+      console.log("[tjFind:reverseSearch]", { indicesCount: indices.length, statIds: want, jewel: Number(tj.jewel), conqueror: tj.conqueror });
       var results = PoTimeless.reverseSearch(indices, want, Number(tj.jewel), tj.conqueror, function () { return true; });
+      console.log("[tjFind:reverseSearch:result]", { seedCount: results ? Object.keys(results).length : 0 });
       tjShowSeeds(results, selected, overallMin);
     }, 30);
+  }
+
+  function applySeed(seed) {
+    if (!seed) return;
+    tjSeed.value = seed;
+    tj.seed = Number(seed);
+    tjEffects();
+  }
+
+  function highlightHit(ids, activeEl) {
+    ids = (ids || []).filter(function (id) { return id && NODES[id]; });
+    tree.highlightNodes(ids);
+    document.querySelectorAll(".active-hit").forEach(function (el) { el.classList.remove("active-hit"); });
+    if (activeEl) activeEl.classList.add("active-hit");
   }
 
   // ---------- 事件 ----------
@@ -515,13 +611,13 @@
   });
   selClass.addEventListener("change", function () { tree.setClassIndex(Number(selClass.value)); tj.socket = null; onSocketChange(null); });
   selAsc.addEventListener("change", function () { tree.setAsc(selAsc.value); });
-  document.getElementById("sel-radius").addEventListener("change", function (e) { tree.setRadius(Number(e.target.value)); if (tj.seed) tjRender(); });
+  document.getElementById("sel-radius").addEventListener("change", function (e) { tree.setRadius(Number(e.target.value)); tjEffects(); if (tj.seed) tjRender(); });
   document.getElementById("ck-ring").addEventListener("change", function (e) { tree.setRing(e.target.checked); onSocketChange(tj.socket); });
   document.getElementById("ck-cluster").addEventListener("change", function (e) { tree.setShowCluster(e.target.checked); });
   document.getElementById("btn-fit").addEventListener("click", function () { tree.fit(); });
 
-  document.getElementById("tj-selall").addEventListener("click", function () { tree.selectAllInRing(); updateSelCount(); if (currentTab === "effect") tjRender(); });
-  document.getElementById("tj-clear").addEventListener("click", function () { tree.clearRing(); updateSelCount(); if (currentTab === "effect") tjRender(); });
+  document.getElementById("tj-selall").addEventListener("click", function () { tree.selectAllInRing(); updateSelCount(); tjEffects(); if (currentTab === "effect") tjRender(); });
+  document.getElementById("tj-clear").addEventListener("click", function () { tree.clearRing(); updateSelCount(); tjEffects(); if (currentTab === "effect") tjRender(); });
 
   document.querySelectorAll(".subtab").forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -534,12 +630,24 @@
     });
   });
 
-  tjJewel.addEventListener("change", function () { tj.jewel = tjJewel.value; tjFillConquerors(); if (tj.seed && currentTab === "effect") tjRender(); });
-  tjConq.addEventListener("change", function () { tj.conqueror = tjConq.value; if (tj.seed && currentTab === "effect") tjRender(); });
-  tjSeed.addEventListener("input", function () { tj.seed = Number(tjSeed.value); if (currentTab === "effect") tjRender(); });
-  document.getElementById("tj-view").addEventListener("click", function () { tjRender(); });
+  tjJewel.addEventListener("change", function () { tj.jewel = tjJewel.value; tjFillConquerors(); tjEffects(); if (tj.seed && currentTab === "effect") tjRender(); });
+  tjConq.addEventListener("change", function () { tj.conqueror = tjConq.value; tjEffects(); if (tj.seed && currentTab === "effect") tjRender(); });
+  tjSeed.addEventListener("input", function () { tj.seed = Number(tjSeed.value); tjEffects(); if (currentTab === "effect") tjRender(); });
+  document.getElementById("tj-view").addEventListener("click", function () { tjEffects(); tjRender(); });
   document.getElementById("tj-find").addEventListener("click", function () { tjFind(); });
+  tjResult.addEventListener("click", function (ev) {
+    var node = ev.target.closest ? ev.target.closest(".tj-node[data-node]") : null;
+    if (!node) return;
+    highlightHit([node.getAttribute("data-node")], node);
+  });
   tjSeeds.addEventListener("click", function (ev) {
+    var hit = ev.target.closest ? ev.target.closest("[data-nodes]") : null;
+    if (hit) {
+      var row = hit.closest ? hit.closest(".seed-row[data-seed]") : null;
+      if (row) applySeed(row.getAttribute("data-seed"));
+      highlightHit((hit.getAttribute("data-nodes") || "").split(","), hit);
+      return;
+    }
     var gt = ev.target.closest ? ev.target.closest(".group-title") : null;
     if (gt) {
       var g = gt.getAttribute("data-group");
@@ -552,10 +660,9 @@
       }
       return;
     }
-    var b = ev.target.closest ? ev.target.closest("[data-seed]") : null;
+    var b = ev.target.closest ? ev.target.closest("button[data-seed]") : null;
     if (!b) return;
-    tjSeed.value = b.getAttribute("data-seed");
-    tj.seed = Number(tjSeed.value);
+    applySeed(b.getAttribute("data-seed"));
     tjRender();
   });
 
